@@ -13,22 +13,26 @@ function Home() {
     pick1: false,
     pick2: false,
     pick3: false,
-    drop: false,
+    park: false,
   })
-  const IP = '0.0.0.0'
+  const IP = '172.23.0.12'
   const PORT = '9090'
 
+  const battery_sub = new ROSLIB.Topic({
+    ros: ros,
+    name: '/amr1_navigation__amr1__battery__battery/battery/out',
+    messageType: 'sensor_msgs/BatteryState',
+  })
+
   useEffect(() => {
-    // connect()
-    var pose_sub = new ROSLIB.Topic({
-      ros: ros,
-      name: '/BatteryStatus',
-      messageType: 'mir_simulation/',
-    })
-    pose_sub.subscribe((message) => {
-      setBattery(message.soc_percent)
-    })
-    return () => {}
+    connect()
+    if (battery == 0) {
+      battery_sub.subscribe((message) => {
+        setBattery(parseInt(message.percentage * 100))
+      })
+    }
+
+    return () => { }
   }, [])
 
   function connect() {
@@ -53,6 +57,12 @@ function Home() {
       //   ...prevState,
       [button]: !prevState[button],
     }))
+
+    var param = new ROSLIB.Param({
+      ros: ros,
+      name: '/out_selection'
+    });
+    param.set(button);
   }
 
   const renderExtensionButton = (button) => {
@@ -88,32 +98,32 @@ function Home() {
         <Button onClick={checkConnection}>Check connection </Button>
         <Button
           variant={isPressed.pick1 ? 'contained' : 'outlined'}
-          onClick={() => handleButtonClick('pick1')}
+          onClick={() => handleButtonClick('out1')}
         >
           pick 1
         </Button>
         {renderExtensionButton('pick1')}
         <Button
           variant={isPressed.pick2 ? 'contained' : 'outlined'}
-          onClick={() => handleButtonClick('pick2')}
+          onClick={() => handleButtonClick('out2')}
         >
           pick 2
         </Button>
         {renderExtensionButton('pick2')}
         <Button
           variant={isPressed.pick3 ? 'contained' : 'outlined'}
-          onClick={() => handleButtonClick('pick3')}
+          onClick={() => handleButtonClick('out3')}
         >
           pick 3
         </Button>
         {renderExtensionButton('pick3')}
         <Button
-          variant={isPressed.drop ? 'contained' : 'outlined'}
-          onClick={() => handleButtonClick('drop')}
+          variant={isPressed.park ? 'contained' : 'outlined'}
+          onClick={() => handleButtonClick('out4')}
         >
-          Drop
+          Park
         </Button>
-        {renderExtensionButton('drop')}
+        {renderExtensionButton('park')}
       </div>
     </>
   )
