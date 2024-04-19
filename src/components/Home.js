@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import * as ROSLIB from 'roslib'
 function Home() {
   const [ros, setRos] = useState(new ROSLIB.Ros())
-  const IP = '127.0.0.1'
+  const IP = '0.0.0.0'
   const PORT = '9090'
 
   useEffect(() => {
@@ -19,6 +19,10 @@ function Home() {
     }
   }
 
+  function check_connection(){
+    console.log(ros.isConnected);
+  }
+
   return (
     <div>
       <h1>
@@ -28,6 +32,8 @@ function Home() {
           <button onClick={connect}>Connect</button>
         )}
       </h1>
+
+      <button onClick={check_connection}>Check connection</button>
       <button>pick 1</button>
       <button>pick 2</button>
       <button>pick 3</button>
