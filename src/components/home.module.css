@@ -1,38 +1,35 @@
-/* home.module.css */
-
 .container {
   display: flex;
   justify-content: space-between;
   margin: 10px 0;
 }
 
-.pickButtons {
+.mainButtons {
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* Ensures separation between pick and park buttons */
+  align-items: start;
+  margin: 20px 0;
+}
+
+.pickButtons {
+  flex-direction: column;
   align-items: center;
 }
 
 .pickColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-right: 10em;
+  margin-bottom: 20px; /* Add margin between buttons vertically */
 }
 
 .pickButton {
   margin-bottom: 10px;
 }
+
 .extensionButtonWrapper {
-  position: relative;
-  top: -2.3em;
-  left: 3.5em;
+  margin-top: 10px; /* Ensures that the button appears below the pick button */
 }
 
-.pickButtonContainer {
+.parkButtonContainer {
   display: flex;
-  align-items: center;
-}
-
-.extensionButton {
-  margin-left: 10px;
+  flex-direction: column;
+  align-items: center; /* Center the park button and its extension */
 }
