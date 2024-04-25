@@ -16,6 +16,10 @@ function Home() {
     out2: false,
     out3: false,
     out4: false,
+    out5: false,
+    out6: false,
+
+    park: false,
   });
   const IP = '172.20.0.12'
   const PORT = '9090'
@@ -106,7 +110,7 @@ function Home() {
         </div>
         <div className={styles.mainButtons}>
           <div className={styles.pickButtons}>
-            {['out1', 'out2', 'out3'].map((button, index) => (
+            {['out1', 'out2', 'out3','out4', 'out5', 'out6'].map((button, index) => (
               <div key={index} className={styles.pickColumn}>
                 <Button
                   style={{ width: '300px', height: '70px' }}
@@ -123,12 +127,12 @@ function Home() {
           <div className={styles.parkButtonContainer}>
             <Button
               style={{ width: '300px', height: '70px' }}
-              variant={isPressed.out4 ? 'contained' : 'outlined'}
-              onClick={() => handleButtonClick('out4')}
+              variant={isPressed.park ? 'contained' : 'outlined'}
+              onClick={() => handleButtonClick('park')}
             >
               Park
             </Button>
-            {renderExtensionButton('out4')}
+            {renderExtensionButton('park')}
           </div>
         </div>
       </div>
