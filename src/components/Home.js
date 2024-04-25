@@ -76,6 +76,11 @@ function Home() {
     param.set(button)
   }
 
+  function refreshPage() {
+    window.location.reload(); 
+  }
+
+
   const renderExtensionButton = (button) => {
     if (isPressed[button]) {
       return (
@@ -98,15 +103,25 @@ function Home() {
 
   return (
     <>
-      <div>
-        <Logo /> {/* Include the Logo component */}
+      <div >
+        
+        <Logo /> 
+        <div className={styles.refreshButtonContainer}>
+          <Button
+            style={{ width: '300px', height: '70px' }}
+            variant="outlined"
+            onClick={refreshPage}
+          >
+            YENİLE
+          </Button>
+        </div>
         <BatteryStatus level={battery} />
         <ToastContainer />
         <div className={styles.container}>
           <h3 style={{ color: '#1976D2' }}>
-            {ros.isConnected ? 'Connected' : <Button onClick={connect}>Connect</Button>}
+            {ros.isConnected ? 'Bağlandı' : <Button onClick={connect}>Bağlan</Button>}
           </h3>
-          <Button onClick={checkConnection}>Check connection</Button>
+          <Button onClick={checkConnection}>Bağlantı kontrol et</Button>
         </div>
         <div className={styles.mainButtons}>
           <div className={styles.pickButtons}>
@@ -118,7 +133,7 @@ function Home() {
                   variant={isPressed[button] ? 'contained' : 'outlined'}
                   onClick={() => handleButtonClick(button)}
                 >
-                  pick {index + 1}
+                  İstasyon {index + 1}
                 </Button>
                 {renderExtensionButton(button)}
               </div>
