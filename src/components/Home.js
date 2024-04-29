@@ -60,6 +60,11 @@ function Home() {
   }
 
   const handleButtonClick = (button) => {
+    if (battery > 1 && battery < 20) {
+      toast.error('Battery level is too low , Robot is going to parking...')
+      handleParam('park')
+      return
+    }
     setIsPressed((prevState) => ({
       [button]: !prevState[button],
     }))
