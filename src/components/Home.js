@@ -22,6 +22,7 @@ function Home() {
 
     park: false,
   })
+  const [param, setParam] = useState('')
   const IP = '172.20.0.12'
   const PORT = '9090'
 
@@ -75,10 +76,24 @@ function Home() {
       name: '/out_selection',
     })
     param.set(button)
+    setParam(button)
   }
 
   function refreshPage() {
     window.location.reload()
+  }
+  function handleCurrentParam(param) {
+    const paramDescriptions = {
+      out1: 'İSTASYON 1',
+      out2: 'İSTASYON 2',
+      out3: 'İSTASYON 3',
+      out4: 'İSTASYON 4',
+      out5: 'İSTASYON 5',
+      out6: 'İSTASYON 6',
+      park: 'PARK',
+    }
+
+    return paramDescriptions[param] || param
   }
 
   const renderExtensionButton = (button) => {
@@ -88,7 +103,13 @@ function Home() {
           <Button
             disabled={!isPressed[button]}
             variant='outlined'
-            style={{ minWidth: 1, padding: 1, width: '300px', height: '70px' }}
+            style={{
+              minWidth: 1,
+              padding: 1,
+              width: '300px',
+              height: '70px',
+              fontSize: '30px',
+            }}
             onClick={() => handleParam(button)}
           >
             <FaArrowCircleRight style={{ fontSize: '2.3em' }} />
@@ -106,23 +127,31 @@ function Home() {
         <Logo />
         <div className={styles.refreshButtonContainer}>
           <Button
-            style={{ width: '300px', height: '70px' }}
+            style={{ width: '300px', height: '70px', fontSize: '30px' }}
             variant='outlined'
             onClick={refreshPage}
           >
             YENİLE
           </Button>
         </div>
+        <h1
+          className={styles.refreshButtonContainer}
+          style={{ color: '#1976D2', fontSize: '30px' }}
+        >
+          {handleCurrentParam(param)}
+        </h1>
         <BatteryStatus level={battery} />
         <ToastContainer />
         <div className={styles.container}>
-          <h3 style={{ color: '#1976D2' }}>
+          <h1 style={{ color: '#1976D2' }}>
             {ros.isConnected ? (
               'Bağlandı'
             ) : (
-              <Button onClick={connect}>Bağlan</Button>
+              <Button onClick={connect} style={{ fontSize: '30px' }}>
+                Bağlan
+              </Button>
             )}
-          </h3>
+          </h1>
           <Button onClick={checkConnection}>Bağlantı kontrol et</Button>
         </div>
         <div className={styles.mainButtons}>
@@ -131,7 +160,7 @@ function Home() {
               (button, index) => (
                 <div key={index} className={styles.pickColumn}>
                   <Button
-                    style={{ width: '300px', height: '70px' }}
+                    style={{ width: '300px', height: '70px', fontSize: '30px' }}
                     className={styles.pickButton}
                     variant={isPressed[button] ? 'contained' : 'outlined'}
                     onClick={() => handleButtonClick(button)}
@@ -145,7 +174,7 @@ function Home() {
           </div>
           <div className={styles.parkButtonContainer}>
             <Button
-              style={{ width: '300px', height: '70px' }}
+              style={{ width: '300px', height: '70px', fontSize: '30px' }}
               variant={isPressed.park ? 'contained' : 'outlined'}
               onClick={() => handleButtonClick('park')}
             >
