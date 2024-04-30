@@ -25,8 +25,8 @@ const BatteryStatus = ({ level }) => {
     >
       <div
         style={{
-          width: '100px',
-          height: '50px',
+          width: '150px',
+          height: '70px',
           border: '2px solid black',
           position: 'relative',
         }}
@@ -39,7 +39,7 @@ const BatteryStatus = ({ level }) => {
           }}
         ></div>
       </div>
-      <p>Battery: {level}%</p>
+      <h2>Battery: {level}%</h2>
     </div>
   )
 }
