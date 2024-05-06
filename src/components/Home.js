@@ -7,6 +7,7 @@ import BatteryStatus from './BatteryStatus'
 import { FaArrowCircleRight } from 'react-icons/fa'
 import Logo from './Logo'
 import styles from './home.module.css'
+import axios from 'axios'
 import Map from './Map'
 
 function Home() {
@@ -22,7 +23,8 @@ function Home() {
 
     park: false,
   })
-  const [param, setParam] = useState('')
+  const [param, setParam] = useState(false)
+  const [token, setToken] = useState(null)
   const IP = '172.20.0.12'
   const PORT = '9090'
 
@@ -33,6 +35,10 @@ function Home() {
   })
 
   useEffect(() => {
+    // api_test()
+    if (token === null) {
+      movai_login()
+    }
     connect()
     if (battery == 0) {
       battery_sub.subscribe((message) => {
@@ -50,6 +56,31 @@ function Home() {
     }
   }
 
+  async function movai_login() {
+    const res = await axios.post('https://192.168.0.116/token-auth/', {
+      username: 'movai',
+      password: 'movai123',
+      remember: false,
+      domain: 'internal',
+    })
+    setToken(res.data.refresh_token)
+    console.log(res.data.refresh_token)
+  }
+
+  function api_test() {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+    const res = axios.post(
+      'https://192.168.0.116/api/v1/function/fleetDashboard.statistics/',
+      {
+        func: 'hello_world',
+      },
+      { headers }
+    )
+    console.log(res)
+  }
   function checkConnection() {
     console.log(ros.isConnected)
     if (ros.isConnected) {
@@ -60,6 +91,7 @@ function Home() {
   }
 
   const handleButtonClick = (button) => {
+    // api_test()
     if (battery > 1 && battery < 20) {
       toast.error('Battery level is too low , Robot is going to parking...')
       handleParam('park')
@@ -144,6 +176,15 @@ function Home() {
           style={{ color: '#1976D2', fontSize: '30px' }}
         >
           {handleCurrentParam(param)}
+          {param && (
+            <Button
+              style={{ marginLeft: '10px', fontSize: '20px' }}
+              variant='outlined'
+              onClick={() => handleParam('')}
+            >
+              İptal Et
+            </Button>
+          )}
         </h1>
         <BatteryStatus level={battery} />
         <ToastContainer />
