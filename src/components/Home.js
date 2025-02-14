@@ -24,27 +24,24 @@ function Home() {
     park: false,
   })
   const [param, setParam] = useState(false)
-  const [token, setToken] = useState(null)
+  // const [token, setToken] = useState(null)
+  // var token = process.env.REACT_APP_TOKEN
+  var token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJSZWZyZXNoIiwiaXNzIjoiYmFja2VuZCIsImlhdCI6MTcxNTA2ODg3OSwiZXhwIjoxNzE1NjczNjc5LCJqdGkiOiIwMDIzMTJmNC1hODFhLTQ2N2YtYjA4MS0zMGYzZjYwM2Y2NzgiLCJyZWZyZXNoX2lkIjoiIiwiZG9tYWluX25hbWUiOiJpbnRlcm5hbCIsImFjY291bnRfbmFtZSI6Im1vdmFpIiwiY29tbW9uX25hbWUiOiJNb3ZhaSIsInVzZXJfdHlwZSI6IklOVEVSTkFMIiwicm9sZXMiOlsiQURNSU4iXSwiZW1haWwiOiIiLCJzdXBlcl91c2VyIjp0cnVlLCJyZWFkX29ubHkiOmZhbHNlLCJzZW5kX3JlcG9ydCI6ZmFsc2V9.fcQ22KlvwSCiG5hZGD9iez_Q3JUbylTME0FbDYNBdVk'
   const IP = '172.20.0.12'
   const PORT = '9090'
 
-  const battery_sub = new ROSLIB.Topic({
-    ros: ros,
-    name: '/amr1_navigation__amr1__battery__battery/battery/out',
-    messageType: 'sensor_msgs/BatteryState',
-  })
+// console.log(process.env.REACT_APP_TEST);
+// console.log(res);
+  // const battery_sub = new ROSLIB.Topic({
+  //   ros: ros,
+  //   name: '/amr1_navigation__amr1__battery__battery/battery/out',
+  //   messageType: 'sensor_msgs/BatteryState',
+  // })
 
   useEffect(() => {
-    // api_test()
-    if (token === null) {
-      movai_login()
-    }
-    connect()
-    if (battery == 0) {
-      battery_sub.subscribe((message) => {
-        setBattery(parseInt(message.percentage * 100))
-      })
-    }
+
+      getBattery()
+
     return () => {}
   }, [])
 
@@ -57,29 +54,41 @@ function Home() {
   }
 
   async function movai_login() {
-    const res = await axios.post('https://192.168.0.116/token-auth/', {
+    const res = await axios.post('https://192.168.3.146/token-auth/', {
       username: 'movai',
       password: 'movai123',
       remember: false,
       domain: 'internal',
     })
-    setToken(res.data.refresh_token)
+    // setToken(res.data.refresh_token)
+    token = res.data.refresh_token
     console.log(res.data.refresh_token)
   }
 
-  function api_test() {
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+   async function getBattery() {
+    try {
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+      console.log(headers);
+      const res = await axios.post(
+        'https://192.168.3.146/api/v1/function/amr_mini_fleetBattery_cb/',
+        {
+          func: 'battery',
+        },
+        { headers }
+      )
+      const batteryFromAPI = res.data.message
+      // console.log(res.data.message)
+      // setBattery(batteryFromAPI.toFixed(0))
+      setBattery(Math.round(batteryFromAPI));
+
+    } catch (error) {
+      console.log(error);
     }
-    const res = axios.post(
-      'https://192.168.0.116/api/v1/function/fleetDashboard.statistics/',
-      {
-        func: 'hello_world',
-      },
-      { headers }
-    )
-    console.log(res)
+    
   }
   function checkConnection() {
     console.log(ros.isConnected)
