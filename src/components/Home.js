@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import * as ROSLIB from 'roslib'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Button from '@mui/material/Button'
@@ -12,7 +11,7 @@ import Map from './Map'
 
 function Home() {
   const [battery, setBattery] = useState(0)
-  const [ros, setRos] = useState(new ROSLIB.Ros())
+  const [wsClient, setWsClient] = useState(null)
   const [isPressed, setIsPressed] = useState({
     out1: false,
     out2: false,
@@ -20,79 +19,84 @@ function Home() {
     out4: false,
     out5: false,
     out6: false,
-
     park: false,
   })
   const [param, setParam] = useState(false)
-  // const [token, setToken] = useState(null)
-  // var token = process.env.REACT_APP_TOKEN
-  var token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJSZWZyZXNoIiwiaXNzIjoiYmFja2VuZCIsImlhdCI6MTcxNTA2ODg3OSwiZXhwIjoxNzE1NjczNjc5LCJqdGkiOiIwMDIzMTJmNC1hODFhLTQ2N2YtYjA4MS0zMGYzZjYwM2Y2NzgiLCJyZWZyZXNoX2lkIjoiIiwiZG9tYWluX25hbWUiOiJpbnRlcm5hbCIsImFjY291bnRfbmFtZSI6Im1vdmFpIiwiY29tbW9uX25hbWUiOiJNb3ZhaSIsInVzZXJfdHlwZSI6IklOVEVSTkFMIiwicm9sZXMiOlsiQURNSU4iXSwiZW1haWwiOiIiLCJzdXBlcl91c2VyIjp0cnVlLCJyZWFkX29ubHkiOmZhbHNlLCJzZW5kX3JlcG9ydCI6ZmFsc2V9.fcQ22KlvwSCiG5hZGD9iez_Q3JUbylTME0FbDYNBdVk'
-  const IP = '172.20.0.12'
-  const PORT = '9090'
 
-// console.log(process.env.REACT_APP_TEST);
-// console.log(res);
-  // const battery_sub = new ROSLIB.Topic({
-  //   ros: ros,
-  //   name: '/amr1_navigation__amr1__battery__battery/battery/out',
-  //   messageType: 'sensor_msgs/BatteryState',
-  // })
+  // API token (you can update or fetch this as needed)
+  let token =
+    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJSZWZyZXNoIiwiaXNzIjoiYmFja2VuZCIsImlhdCI6MTcxNTA2ODg3OSwiZXhwIjoxNzE1NjczNjc5LCJqdGkiOiIwMDIzMTJmNC1hODFhLTQ2N2YtYjA4MS0zMGYzZjYwM2Y2NzgiLCJyZWZyZXNoX2lkIjoiIiwiZG9tYWluX25hbWUiOiJpbnRlcm5hbCIsImFjY291bnRfbmFtZSI6Im1vdmFpIiwiY29tbW9uX25hbWUiOiJNb3ZhaSIsInVzZXJfdHlwZSI6IklOVEVSTkFMIiwicm9sZXMiOlsiQURNSU4iXSwiZW1haWwiOiIiLCJzdXBlcl91c2VyIjp0cnVlLCJyZWFkX29ubHkiOmZhbHNlLCJzZW5kX3JlcG9ydCI6ZmFsc2V9.fcQ22KlvwSCiG5hZGD9iez_Q3JUbylTME0FbDYNBdVk'
+  const IP_API = '172.20.0.12'
+  const PORT_API = '9090'
+
+  // WebSocket server details (update as needed)
+  const WS_SERVER_IP = '192.168.3.146'
+  const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
-
-      getBattery()
-
-    return () => {}
+    getBattery()
+    // Optionally, you can connect automatically on mount:
+    // connect()
+    return () => {
+      // Cleanup WebSocket if needed
+      if (wsClient) wsClient.close()
+    }
   }, [])
 
+  // Connect to the WebSocket server
   function connect() {
     try {
-      ros.connect('ws://' + IP + ':' + PORT + '')
+      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}`)
+
+      ws.onopen = () => {
+        console.log('Connected to WebSocket server!')
+        toast.success('Connected to WebSocket server!')
+        setWsClient(ws)
+      }
+
+      ws.onmessage = (event) => {
+        console.log('Message from server:', event.data)
+        // Optionally handle incoming messages here.
+      }
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+        toast.error('WebSocket error')
+      }
+
+      ws.onclose = () => {
+        console.log('WebSocket connection closed')
+        toast.info('WebSocket connection closed')
+        setWsClient(null)
+      }
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 
-  async function movai_login() {
-    const res = await axios.post('https://192.168.3.146/token-auth/', {
-      username: 'movai',
-      password: 'movai123',
-      remember: false,
-      domain: 'internal',
-    })
-    // setToken(res.data.refresh_token)
-    token = res.data.refresh_token
-    console.log(res.data.refresh_token)
-  }
 
-   async function getBattery() {
+
+  async function getBattery() {
     try {
-
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       }
-      console.log(headers);
+      console.log('Request headers:', headers)
       const res = await axios.post(
         'https://192.168.3.146/api/v1/function/amr_mini_fleetBattery_cb/',
-        {
-          func: 'battery',
-        },
+        { func: 'battery' },
         { headers }
       )
       const batteryFromAPI = res.data.message
-      // console.log(res.data.message)
-      // setBattery(batteryFromAPI.toFixed(0))
-      setBattery(Math.round(batteryFromAPI));
-
+      setBattery(Math.round(batteryFromAPI))
     } catch (error) {
-      console.log(error);
+      console.error(error)
     }
-    
   }
+
   function checkConnection() {
-    console.log(ros.isConnected)
-    if (ros.isConnected) {
+    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       toast.success('Robot is Connected')
     } else {
       toast.error('Robot is not Connected')
@@ -100,34 +104,33 @@ function Home() {
   }
 
   const handleButtonClick = (button) => {
-    // api_test()
     if (battery > 1 && battery < 20) {
-      toast.error('Battery level is too low , Robot is going to parking...')
+      toast.error('Battery level is too low, Robot is going to parking...')
       handleParam('park')
       return
     }
     setIsPressed((prevState) => ({
+      ...prevState,
       [button]: !prevState[button],
     }))
-    // var param = new ROSLIB.Param({
-    //   ros: ros,
-    //   name: '/out_selection',
-    // })
-    // param.set(button)
   }
 
+  // Send the parameter via the WebSocket connection
   const handleParam = (button) => {
-    var param = new ROSLIB.Param({
-      ros: ros,
-      name: '/out_selection',
-    })
-    param.set(button)
-    setParam(button)
+    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
+      const message = { param: button }
+      wsClient.send(JSON.stringify(message))
+      setParam(button)
+    } else {
+      console.error('WebSocket not connected')
+      toast.error('WebSocket not connected')
+    }
   }
 
   function refreshPage() {
     window.location.reload()
   }
+
   function handleCurrentParam(param) {
     const paramDescriptions = {
       out1: 'İSTASYON 1',
@@ -138,7 +141,6 @@ function Home() {
       out6: 'İSTASYON 6',
       park: 'PARK',
     }
-
     return paramDescriptions[param] || param
   }
 
@@ -148,7 +150,7 @@ function Home() {
         <div className={styles.extensionButtonWrapper}>
           <Button
             disabled={!isPressed[button]}
-            variant='outlined'
+            variant="outlined"
             style={{
               minWidth: 1,
               padding: 1,
@@ -163,7 +165,6 @@ function Home() {
         </div>
       )
     }
-
     return null
   }
 
@@ -174,7 +175,7 @@ function Home() {
         <div className={styles.refreshButtonContainer}>
           <Button
             style={{ width: '300px', height: '70px', fontSize: '30px' }}
-            variant='outlined'
+            variant="outlined"
             onClick={refreshPage}
           >
             YENİLE
@@ -188,7 +189,7 @@ function Home() {
           {param && (
             <Button
               style={{ marginLeft: '10px', fontSize: '20px' }}
-              variant='outlined'
+              variant="outlined"
               onClick={() => handleParam('')}
             >
               İptal Et
@@ -199,7 +200,7 @@ function Home() {
         <ToastContainer />
         <div className={styles.container}>
           <h1 style={{ color: '#1976D2' }}>
-            {ros.isConnected ? (
+            {wsClient && wsClient.readyState === WebSocket.OPEN ? (
               'Bağlandı'
             ) : (
               <Button onClick={connect} style={{ fontSize: '30px' }}>

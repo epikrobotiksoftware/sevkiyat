@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 
 function connectWebSocket() {
   // Create WebSocket connection.
-  const ws = new WebSocket('ws://192.168.3.28:8701');
+  const ws = new WebSocket('ws://192.168.3.146:8701');
 
   // Connection opened
   ws.on('open', function open() {
