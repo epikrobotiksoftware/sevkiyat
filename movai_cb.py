@@ -1,160 +1,129 @@
 import asyncio
 import websockets
-import logging
 import json
-from rospy.timer import TimerEvent
 from sensor_msgs.msg import BatteryState
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from nav_msgs.msg import Odometry
+from rospy.timer import TimerEvent
+from nav_msgs.msg import OccupancyGrid
+from API2.Robot import Robot
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Server details
+SERVER_IP = "192.168.3.146"
+SERVER_PORT = 8701
+SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
+
+# Assuming gd.shared is defined elsewhere. For this example, we define a simple stub.
+gd.shared.battery=None
+gd.shared.map_odometry_data=None
 
 class Websocket:
     def __init__(self):
-        self.amcl_data = None
+     
         self.map_odometry_data = None
-        self.map_data=None
-        self.battery_percentage=None
-        self.uri = "ws://192.168.3.27:8701"
 
-    def amcl(self, msg:PoseWithCovarianceStamped):
-        self.amcl_data = msg
-    
-    # def occupancy_grid_callback(self, msg):
-    #     # Retrieve occupancy grid properties
-    #     width = msg.info.width
-    #     height = msg.info.height
-    #     data = msg.data
+        self.battery_percentage = None
 
-    #     # Create PIL image from occupancy grid data
-    #     image = PILImage.new('L', (width, height))
-    #     for y in range(height):
-    #         for x in range(width):
-    #             index = y * width + x
-    #             value = data[index]
-    #             inverted_value = 255 if value == 0 else 0
-    #             image.putpixel((x, y), inverted_value)
+    def battery_publisher(self, msg: BatteryState):
+        # Convert battery percentage to a rounded integer value
+        self.battery_percentage = round(msg.percentage * 100, 1)
 
-    #     # Convert PIL image to Base64 string
-    #     buffered = io.BytesIO()
-    #     image.save(buffered, format='JPEG')
-    #     self.image_base64 = base64.b64encode(
-    #         buffered.getvalue()).decode('utf-8')
-    def battery_publisher(self,msg:BatteryState):
-        # print("battery percentage: ", msg.percentage)
-        self.battery_percentage=msg.percentage
-    
-    def get_map_odometry_data(self, msg:Odometry):
+    def get_map_odometry_data(self, msg: Odometry):
         self.map_odometry_data = msg
-        # self.occupancy_grid_callback(msg)
-        
-    def map_get_data(self,msg:OccupancyGrid):
-        self.map_data=msg
-        print("data: ",self.map_data)
-        
-        
-    async def send_map_and_amcl_data(self):
-        print(self.battery_percentage)
-        while True:
-            try:
-                async with websockets.connect(self.uri) as websocket:
-                    logging.info("Connected to server")
-                    while self.amcl_data and self.map_odometry_data:
-                        # Serialize the ROS message data
-                        # amcl_data_json = json.dumps({
-                        #     'position': {
-                        #         'x': self.amcl_data.pose.pose.position.x,
-                        #         'y': self.amcl_data.pose.pose.position.y,
-                        #         'z': self.amcl_data.pose.pose.position.z
-                        #     },
-                        #     'orientation': {
-                        #         'x': self.amcl_data.pose.pose.orientation.x,
-                        #         'y': self.amcl_data.pose.pose.orientation.y,
-                        #         'z': self.amcl_data.pose.pose.orientation.z,
-                        #         'w': self.amcl_data.pose.pose.orientation.w
-                        #     }
-                        # })
 
-                        # map_data_json = json.dumps({
-                        #     'position': {
-                        #         'x': self.map_data.pose.pose.position.x,
-                        #         'y': self.map_data.pose.pose.position.y,
-                        #         'z': self.map_data.pose.pose.position.z
-                        #     },
-                        #     'velocity': {
-                        #         'linear': self.map_data.twist.twist.linear.x,
-                        #         'angular': self.map_data.twist.twist.angular.z
-                        #     }
-                        # })
-                        combined_data = {
-                            # 'amcl': {
-                            #     'position': {
-                            #         'x': self.amcl_data.pose.pose.position.x,
-                            #         'y': self.amcl_data.pose.pose.position.y,
-                            #         'z': self.amcl_data.pose.pose.position.z
-                            #     },
-                            #     'orientation': {
-                            #         'x': self.amcl_data.pose.pose.orientation.x,
-                            #         'y': self.amcl_data.pose.pose.orientation.y,
-                            #         'z': self.amcl_data.pose.pose.orientation.z,
-                            #         'w': self.amcl_data.pose.pose.orientation.w
-                            #     }
-                            # },
-                            # 'map': {
-                            #     'position': {
-                            #         'x': self.map_odometry_data.pose.pose.position.x,
-                            #         'y': self.map_odometry_data.pose.pose.position.y,
-                            #         'z': self.map_odometry_data.pose.pose.position.z
-                            #     },
-                            #     'velocity': {
-                            #         'linear': self.map_odometry_data.twist.twist.linear.x,
-                            #         'angular': self.map_odometry_data.twist.twist.angular.z
-                            #     }
-                            # },
-                            'battery':{
-                                'percent': self.battery_percentage
+    
+    def timer(self, msg: TimerEvent):
+        # Update the shared data
+
+        gd.shared.battery = self.battery_percentage
+        gd.shared.map_odometry_data = self.map_odometry_data
+
+async def send_data():
+    while True:
+        try:
+            async with websockets.connect(SERVER_URL) as websocket:
+                logger.info(f"[Send] Connected to {SERVER_URL}")
+
+                # Try to get a welcome message from the server with a timeout.
+                try:
+                    welcome_message = await asyncio.wait_for(websocket.recv(), timeout=5)
+                    # logger.info(f"[Send] Server (welcome): {welcome_message}")
+                except (asyncio.TimeoutError, websockets.ConnectionClosed):
+                    logger.error("[Send] No welcome message received or connection closed. Reconnecting...")
+                    continue  # Reconnect by restarting the outer loop
+
+                # Once connected, continuously send data as it becomes available.
+                while True:
+                    if gd.shared.map_odometry_data is not None and gd.shared.battery is not None:
+                        shared_data = {
+                            "battery": {
+                                "percent": gd.shared.battery
+                            },
+                            "Map": {
+                                "position": {
+                                    "x": gd.shared.map_odometry_data.pose.pose.position.x,
+                                    "y": gd.shared.map_odometry_data.pose.pose.position.y,
+                                    "z": gd.shared.map_odometry_data.pose.pose.position.z
+                                },
+                                "orientation": {
+                                    "x": gd.shared.map_odometry_data.pose.pose.orientation.x,
+                                    "y": gd.shared.map_odometry_data.pose.pose.orientation.y,
+                                    "z": gd.shared.map_odometry_data.pose.pose.orientation.z,
+                                    "w": gd.shared.map_odometry_data.pose.pose.orientation.w,
+                                }
                             }
-                            
                         }
+                        message = json.dumps(shared_data)
+                        await websocket.send(message)
+                        # logger.info(f"[Send] Sent: {message}")
+                        await asyncio.sleep(1)  # Delay between sends
+                    else:
+                        await asyncio.sleep(0.1)  # Wait briefly if data is not yet available
 
-                        # Serialize the combined data
-                        combined_data_json = json.dumps(combined_data)
-                        # amcl_data_json = self.amcl_data
-                        # map_data_json = self.map_data
-                        # Send the serialized data
-                        await websocket.send(combined_data_json)
-                        # await websocket.send(map_data_json)
+        except (websockets.ConnectionClosedError, OSError) as e:
+            logger.error(f"[Send] Connection lost: {e}. Reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        except Exception as e:
+            logger.error(f"[Send] Unexpected error: {e}. Reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
 
-                        # Wait before sending the next update
-                        await asyncio.sleep(5)
-            except websockets.ConnectionClosed as e:
-                logging.error(f"Connection closed: {e.code} - {e.reason}")
-                logging.info("Reconnecting in 5 seconds...")
-                await asyncio.sleep(5)
-            except Exception as e:
-                logging.error(f"An error occurred: {e}")
-                logging.info("Reconnecting in 5 seconds...")
-                await asyncio.sleep(5)
+async def receive_data():
+    while True:
+        try:
+            async with websockets.connect(SERVER_URL) as websocket:
+                logger.info(f"[Receive] Connected to {SERVER_URL}")
 
-    def update_loop(self, msg: TimerEvent):
-        # Create and set a new event loop for the current thread if needed
-        if self.battery_percentage != None:
-            try:
-                loop = asyncio.get_event_loop()
-                print("GO")
-            except RuntimeError:
-                print("error")
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.send_map_and_amcl_data())
-        # print("data:",self.data)
+                # Continuously receive and print messages from the server.
+                while True:
+                    message = await websocket.recv()
+                    logger.info(f"[Receive] Received: {message}")
+                    gd.oport["/out_selection"].send({'/out_selection': message})
 
-web_socket = Websocket()
 
+        except (websockets.ConnectionClosedError, OSError) as e:
+            logger.error(f"[Receive] Connection lost: {e}. Reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        except Exception as e:
+            logger.error(f"[Receive] Unexpected error: {e}. Reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+
+# Create an instance of our Websocket helper and map our callback methods.
+websocket_instance = Websocket()
 gd.shared.map_to_method = {
-    'amcl': web_socket.amcl,
-    'map_odometry': web_socket.get_map_odometry_data,
-    'map_weboscket': web_socket.map_get_data,
-    'battery': web_socket.battery_publisher,
-    'loop': web_socket.update_loop
+    "map_odometry": websocket_instance.get_map_odometry_data,
+    "battery": websocket_instance.battery_publisher,
+    "update_loop": websocket_instance.timer
 }
 
+async def main():
+    # Run both sending and receiving concurrently.
+    send_task = asyncio.create_task(send_data())
+    receive_task = asyncio.create_task(receive_data())
+    await asyncio.gather(send_task, receive_task)
+
+# Start the event loop, either by using the running loop or creating a new one.
+try:
+    loop = asyncio.get_running_loop()
+    loop.create_task(main())
+except RuntimeError:
+    asyncio.run(main())
