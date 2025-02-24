@@ -38,34 +38,34 @@ function Home() {
   // Connect to the WebSocket server
   function connect() {
     try {
-      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}`)
-
+      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`);
+  
       ws.onopen = () => {
-        console.log('Connected to WebSocket server!')
-        toast.success('Connected to WebSocket server!')
-        ws.send(JSON.stringify({ clientType: 'ui' }))
-        setWsClient(ws)
-      }
-
+        console.log('Connected to WebSocket server!');
+        toast.success('Connected to WebSocket server!');
+        setWsClient(ws);
+      };
+  
       ws.onmessage = (event) => {
-        console.log('Message from server:', event.data)
-        // Optionally handle incoming messages here.
-      }
-
+        console.log('Message from server:', event.data);
+        // Handle the message from the server (which might come from the robot)
+      };
+  
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        toast.error('WebSocket error')
-      }
-
+        console.error('WebSocket error:', error);
+        toast.error('WebSocket error');
+      };
+  
       ws.onclose = () => {
-        console.log('WebSocket connection closed')
-        toast.info('WebSocket connection closed')
-        setWsClient(null)
-      }
+        console.log('WebSocket connection closed');
+        toast.info('WebSocket connection closed');
+        setWsClient(null);
+      };
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   }
+  
 
   // async function getBattery() {
   //   try {
