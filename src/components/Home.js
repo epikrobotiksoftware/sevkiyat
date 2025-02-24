@@ -6,8 +6,6 @@ import BatteryStatus from './BatteryStatus'
 import { FaArrowCircleRight } from 'react-icons/fa'
 import Logo from './Logo'
 import styles from './home.module.css'
-import axios from 'axios'
-import Map from './Map'
 
 function Home() {
   const [battery, setBattery] = useState(0)
@@ -23,20 +21,14 @@ function Home() {
   })
   const [param, setParam] = useState(false)
 
-  // API token (you can update or fetch this as needed)
-  let token =
-    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJSZWZyZXNoIiwiaXNzIjoiYmFja2VuZCIsImlhdCI6MTcxNTA2ODg3OSwiZXhwIjoxNzE1NjczNjc5LCJqdGkiOiIwMDIzMTJmNC1hODFhLTQ2N2YtYjA4MS0zMGYzZjYwM2Y2NzgiLCJyZWZyZXNoX2lkIjoiIiwiZG9tYWluX25hbWUiOiJpbnRlcm5hbCIsImFjY291bnRfbmFtZSI6Im1vdmFpIiwiY29tbW9uX25hbWUiOiJNb3ZhaSIsInVzZXJfdHlwZSI6IklOVEVSTkFMIiwicm9sZXMiOlsiQURNSU4iXSwiZW1haWwiOiIiLCJzdXBlcl91c2VyIjp0cnVlLCJyZWFkX29ubHkiOmZhbHNlLCJzZW5kX3JlcG9ydCI6ZmFsc2V9.fcQ22KlvwSCiG5hZGD9iez_Q3JUbylTME0FbDYNBdVk'
-  const IP_API = '172.20.0.12'
-  const PORT_API = '9090'
-
-  // WebSocket server details (update as needed)
+  // WebSocket server details
   const WS_SERVER_IP = '192.168.3.146'
   const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
-    getBattery()
+    // getBattery()
     // Optionally, you can connect automatically on mount:
-    // connect()
+    connect()
     return () => {
       // Cleanup WebSocket if needed
       if (wsClient) wsClient.close()
@@ -51,6 +43,7 @@ function Home() {
       ws.onopen = () => {
         console.log('Connected to WebSocket server!')
         toast.success('Connected to WebSocket server!')
+        ws.send(JSON.stringify({ clientType: 'ui' }))
         setWsClient(ws)
       }
 
@@ -74,26 +67,24 @@ function Home() {
     }
   }
 
-
-
-  async function getBattery() {
-    try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-      console.log('Request headers:', headers)
-      const res = await axios.post(
-        'https://192.168.3.146/api/v1/function/amr_mini_fleetBattery_cb/',
-        { func: 'battery' },
-        { headers }
-      )
-      const batteryFromAPI = res.data.message
-      setBattery(Math.round(batteryFromAPI))
-    } catch (error) {
-      console.error(error)
-    }
-  }
+  // async function getBattery() {
+  //   try {
+  //     const headers = {
+  //       Authorization: `Bearer ${token}`,
+  //       'Content-Type': 'application/json',
+  //     }
+  //     console.log('Request headers:', headers)
+  //     const res = await axios.post(
+  //       'https://192.168.3.146/api/v1/function/amr_mini_fleetBattery_cb/',
+  //       { func: 'battery' },
+  //       { headers }
+  //     )
+  //     const batteryFromAPI = res.data.message
+  //     setBattery(Math.round(batteryFromAPI))
+  //   } catch (error) {
+  //     console.error(error)
+  //   }
+  // }
 
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
@@ -150,7 +141,7 @@ function Home() {
         <div className={styles.extensionButtonWrapper}>
           <Button
             disabled={!isPressed[button]}
-            variant="outlined"
+            variant='outlined'
             style={{
               minWidth: 1,
               padding: 1,
@@ -175,7 +166,7 @@ function Home() {
         <div className={styles.refreshButtonContainer}>
           <Button
             style={{ width: '300px', height: '70px', fontSize: '30px' }}
-            variant="outlined"
+            variant='outlined'
             onClick={refreshPage}
           >
             YENİLE
@@ -189,7 +180,7 @@ function Home() {
           {param && (
             <Button
               style={{ marginLeft: '10px', fontSize: '20px' }}
-              variant="outlined"
+              variant='outlined'
               onClick={() => handleParam('')}
             >
               İptal Et
