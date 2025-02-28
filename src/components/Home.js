@@ -96,15 +96,29 @@ function Home() {
 
   const handleButtonClick = (button) => {
     if (battery > 1 && battery < 20) {
-      toast.error('Battery level is too low, Robot is going to parking...')
-      handleParam('park')
-      return
+      toast.error('Battery level is too low, Robot is going to parking...');
+      handleParam('park');
+      return;
     }
-    setIsPressed((prevState) => ({
-      ...prevState,
-      [button]: !prevState[button],
-    }))
-  }
+    setIsPressed((prevState) => {
+      // Reset all buttons to false
+      const newState = {
+        out1: false,
+        out2: false,
+        out3: false,
+        out4: false,
+        out5: false,
+        out6: false,
+        park: false,
+      };
+      // Toggle the selected button: if it was not active, activate it.
+      if (!prevState[button]) {
+        newState[button] = true;
+      }
+      return newState;
+    });
+  };
+  
 
   // Send the parameter via the WebSocket connection
   const handleParam = (button) => {
