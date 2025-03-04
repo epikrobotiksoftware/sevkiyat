@@ -7,6 +7,19 @@ from nav_msgs.msg import Odometry
 from rospy.timer import TimerEvent
 from nav_msgs.msg import OccupancyGrid
 from API2.Robot import Robot
+from API2.Robot import FleetRobot
+from movai_task_data.movai_tasks import get_movai_task_classes
+from movai_common.msg import StringArray
+
+
+
+import aiohttp
+import asyncio
+from API2.Robot import Robot
+import json 
+from std_srvs.srv import TriggerRequest, TriggerResponse
+
+fvar = Var('flow')
 
 # Server details
 SERVER_IP = "192.168.3.146"
@@ -14,51 +27,65 @@ SERVER_PORT = 8701
 SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
 
 # Assuming gd.shared is defined elsewhere. For this example, we define a simple stub.
-gd.shared.battery=None
+gd.shared.battery_percentage=None
+gd.shared.battery_status=None
 gd.shared.map_odometry_data=None
+gd.shared.robotname=Robot().RobotName
+gd.shared.robot_status=0
+gd.shared.robots_status_map = {}  # Tüm robotların durumlarını saklamak için
 
 class Websocket:
     def __init__(self):
-     
         self.map_odometry_data = None
-
-        self.battery_percentage = None
-
+        self.battery_info=None
+       
     def battery_publisher(self, msg: BatteryState):
         # Convert battery percentage to a rounded integer value
-        self.battery_percentage = round(msg.percentage * 100, 1)
+        self.battery_info = msg
 
     def get_map_odometry_data(self, msg: Odometry):
         self.map_odometry_data = msg
 
-    
-    def timer(self, msg: TimerEvent):
-        # Update the shared data
+    def check_robot_status(self):
+        """Robot'un filoda olup olmadığını kontrol eder ve durumunu günceller."""
+        robots_in_fleet = {FleetRobot(robot_id).RobotName: robot_id for robot_id in Robot.get_all()}.keys()
 
-        gd.shared.battery = self.battery_percentage
+        # Tüm robotları sıfır olarak başlat
+        gd.shared.robots_status_map = {name: 0 for name in robots_in_fleet}
+
+        # Eğer bu robot filoda varsa, durumunu 1 yap
+        if gd.shared.robotname in robots_in_fleet:
+            gd.shared.robots_status_map[gd.shared.robotname] = 1
+            gd.shared.robot_status = 1  # Filoda olduğu için 1
+        else:
+            gd.shared.robot_status = 0  # Filoda yoksa 0
+
+        # print(f"Tüm Robot Durumları: {gd.shared.robots_status_map}")  # Durumu görmek için
+    
+            
+       
+    def timer(self, msg: TimerEvent):
+        gd.shared.battery_percentage = round(self.battery_info.percentage*100,2)
+        gd.shared.battery_status = self.battery_info.power_supply_status
         gd.shared.map_odometry_data = self.map_odometry_data
+        self.check_robot_status()
 
 async def send_data():
     while True:
         try:
             async with websockets.connect(SERVER_URL) as websocket:
                 logger.info(f"[Send] Connected to {SERVER_URL}")
-
-                # Try to get a welcome message from the server with a timeout.
-                try:
-                    welcome_message = await asyncio.wait_for(websocket.recv(), timeout=5)
-                    # logger.info(f"[Send] Server (welcome): {welcome_message}")
-                except (asyncio.TimeoutError, websockets.ConnectionClosed):
-                    logger.error("[Send] No welcome message received or connection closed. Reconnecting...")
-                    continue  # Reconnect by restarting the outer loop
-
-                # Once connected, continuously send data as it becomes available.
                 while True:
-                    if gd.shared.map_odometry_data is not None and gd.shared.battery is not None:
+
+                    if gd.shared.map_odometry_data is not None and gd.shared.battery_percentage is not None and gd.shared.robotname is not None:
                         shared_data = {
-                            "battery": {
-                                "percent": gd.shared.battery
+                            "Robot":{
+                                "Name":gd.shared.robotname,
+                                "battery_percentage": gd.shared.battery_percentage,
+                                "battery_status":gd.shared.battery_status,
+                                "status": gd.shared.robot_status
                             },
+
                             "Map": {
                                 "position": {
                                     "x": gd.shared.map_odometry_data.pose.pose.position.x,
@@ -96,7 +123,7 @@ async def receive_data():
                 # Continuously receive and print messages from the server.
                 while True:
                     message = await websocket.recv()
-                    logger.info(f"[Receive] Received: {message}")
+                    print(f"[Receive] Received: {message}")
                     gd.oport["/out_selection"].send({'/out_selection': message})
 
 
