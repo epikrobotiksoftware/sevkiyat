@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 
 function connectWebSocket() {
   // Create WebSocket connection.
-  const ws = new WebSocket('ws://192.168.3.146:8701');
+  const ws = new WebSocket('ws://192.168.3.146:8701/react');
 
   // Connection opened
   ws.on('open', function open() {
@@ -13,7 +13,10 @@ function connectWebSocket() {
 
   // Listen for messages
   ws.on('message', function incoming(data) {
-    console.log('Received:', data);
+    const parsedData = JSON.parse(data);
+    console.log('Received:', parsedData);
+    //
+    // console.log('Received:', data);
   });
 
   // Handle errors

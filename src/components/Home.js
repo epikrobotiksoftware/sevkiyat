@@ -10,6 +10,7 @@ import styles from './home.module.css'
 function Home() {
   const [battery, setBattery] = useState(0)
   const [wsClient, setWsClient] = useState(null)
+  const [robotName, setRobotName] = useState('')
   const [isPressed, setIsPressed] = useState({
     out1: false,
     out2: false,
@@ -26,8 +27,6 @@ function Home() {
   const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
-    // getBattery()
-    // Optionally, you can connect automatically on mount:
     connect()
     return () => {
       // Cleanup WebSocket if needed
@@ -47,7 +46,11 @@ function Home() {
       };
   
       ws.onmessage = (event) => {
-        console.log('Message from server:', event.data);
+        // Parse the message
+        const message = JSON.parse(event.data);
+        setBattery(message.Robot.battery_percentage)
+        setRobotName(message.Robot.Name)
+        console.log('Message from server:', message);
         // Handle the message from the server (which might come from the robot)
       };
   
@@ -65,26 +68,7 @@ function Home() {
       console.error(error);
     }
   }
-  
 
-  // async function getBattery() {
-  //   try {
-  //     const headers = {
-  //       Authorization: `Bearer ${token}`,
-  //       'Content-Type': 'application/json',
-  //     }
-  //     console.log('Request headers:', headers)
-  //     const res = await axios.post(
-  //       'https://192.168.3.146/api/v1/function/amr_mini_fleetBattery_cb/',
-  //       { func: 'battery' },
-  //       { headers }
-  //     )
-  //     const batteryFromAPI = res.data.message
-  //     setBattery(Math.round(batteryFromAPI))
-  //   } catch (error) {
-  //     console.error(error)
-  //   }
-  // }
 
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
@@ -159,9 +143,10 @@ function Home() {
             style={{
               minWidth: 1,
               padding: 1,
-              width: '300px',
-              height: '70px',
-              fontSize: '30px',
+              width: '150px',
+              height: '50px',
+              fontSize: '10px',
+              fontWeight: 'bold',
             }}
             onClick={() => handleParam(button)}
           >
@@ -179,21 +164,22 @@ function Home() {
         <Logo />
         <div className={styles.refreshButtonContainer}>
           <Button
-            style={{ width: '300px', height: '70px', fontSize: '30px' }}
+            style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
             variant='outlined'
             onClick={refreshPage}
           >
             YENİLE
           </Button>
+          {/* <Button>{robotName}</Button> */}
         </div>
         <h1
           className={styles.refreshButtonContainer}
-          style={{ color: '#1976D2', fontSize: '30px' }}
+          style={{ color: '#1976D2', fontSize: '17px', marginTop: '15px' }}
         >
           {handleCurrentParam(param)}
           {param && (
             <Button
-              style={{ marginLeft: '10px', fontSize: '20px' }}
+              style={{ marginLeft: '10px', fontSize: '10px' }}
               variant='outlined'
               onClick={() => handleParam('')}
             >
@@ -204,16 +190,16 @@ function Home() {
         <BatteryStatus level={battery} />
         <ToastContainer />
         <div className={styles.container}>
-          <h1 style={{ color: '#1976D2' }}>
+          <h2 style={{ color: '#1976D2' }}>
             {wsClient && wsClient.readyState === WebSocket.OPEN ? (
               'Bağlandı'
             ) : (
-              <Button onClick={connect} style={{ fontSize: '30px' }}>
+              <Button onClick={connect} style={{ fontSize: '10px' }}>
                 Bağlan
               </Button>
             )}
-          </h1>
-          <Button onClick={checkConnection}>Bağlantı kontrol et</Button>
+          </h2>
+          <Button onClick={checkConnection}>Bağlantı kontrolu</Button>
         </div>
         <div className={styles.mainButtons}>
           <div className={styles.pickButtons}>
@@ -221,7 +207,7 @@ function Home() {
               (button, index) => (
                 <div key={index} className={styles.pickColumn}>
                   <Button
-                    style={{ width: '300px', height: '70px', fontSize: '30px' }}
+                    style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
                     className={styles.pickButton}
                     variant={isPressed[button] ? 'contained' : 'outlined'}
                     onClick={() => handleButtonClick(button)}
@@ -235,7 +221,7 @@ function Home() {
           </div>
           <div className={styles.parkButtonContainer}>
             <Button
-              style={{ width: '300px', height: '70px', fontSize: '30px' }}
+              style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
               variant={isPressed.park ? 'contained' : 'outlined'}
               onClick={() => handleButtonClick('park')}
             >
