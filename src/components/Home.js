@@ -41,7 +41,19 @@ function Home() {
   
       ws.onopen = () => {
         console.log('Connected to WebSocket server!');
-        toast.success('Connected to WebSocket server!');
+        // toast message "Connected to WebSocket server!" should be in the top middle
+        toast.success('Connected to WebSocket server!',{
+          position: "top-center",
+          autoClose: 300,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          // transition: Bounce,
+        });
+
         setWsClient(ws);
       };
   
@@ -61,7 +73,17 @@ function Home() {
   
       ws.onclose = () => {
         console.log('WebSocket connection closed');
-        toast.info('WebSocket connection closed');
+        toast.info('WebSocket connection closed',{
+          position: "top-center",
+          autoClose: 300,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          // transition: Bounce,
+        });
         setWsClient(null);
       };
     } catch (error) {
@@ -72,9 +94,29 @@ function Home() {
 
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      toast.success('Robot is Connected')
+      toast.success('Robot is Connected',{
+        position: "top-center",
+        autoClose: 300,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        // transition: Bounce,
+      })
     } else {
-      toast.error('Robot is not Connected')
+      toast.error('Robot is not Connected',{
+        position: "top-center",
+        autoClose: 300,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        // transition: Bounce,
+      })
     }
   }
 
