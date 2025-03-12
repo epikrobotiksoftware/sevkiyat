@@ -11,16 +11,22 @@ function Home() {
   const [battery, setBattery] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [robotName, setRobotName] = useState('')
-  const [isPressed, setIsPressed] = useState({
+  // Combined state for pick selection: out1, out2, out3, park, and charge.
+  const [pickPressed, setPickPressed] = useState({
     out1: false,
     out2: false,
     out3: false,
-    out4: false,
-    out5: false,
-    out6: false,
     park: false,
+    charge: false,
   })
-  const [param, setParam] = useState(false)
+  // State for drop selection: out1, out2, out3.
+  const [dropPressed, setDropPressed] = useState({
+    out1: false,
+    out2: false,
+    out3: false,
+  })
+  // Stores the current selection to display.
+  const [param, setParam] = useState('')
 
   // WebSocket server details
   const WS_SERVER_IP = '192.168.3.146'
@@ -29,7 +35,6 @@ function Home() {
   useEffect(() => {
     connect()
     return () => {
-      // Cleanup WebSocket if needed
       if (wsClient) wsClient.close()
     }
   }, [])
@@ -37,12 +42,10 @@ function Home() {
   // Connect to the WebSocket server
   function connect() {
     try {
-      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`);
-  
+      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
       ws.onopen = () => {
-        console.log('Connected to WebSocket server!');
-        // toast message "Connected to WebSocket server!" should be in the top middle
-        toast.success('Connected to WebSocket server!',{
+        console.log('Connected to WebSocket server!')
+        toast.success('Connected to WebSocket server!', {
           position: "top-center",
           autoClose: 300,
           hideProgressBar: false,
@@ -51,29 +54,22 @@ function Home() {
           draggable: true,
           progress: undefined,
           theme: "light",
-          // transition: Bounce,
-        });
-
-        setWsClient(ws);
-      };
-  
+        })
+        setWsClient(ws)
+      }
       ws.onmessage = (event) => {
-        // Parse the message
-        const message = JSON.parse(event.data);
+        const message = JSON.parse(event.data)
         setBattery(message.Robot.battery_percentage)
         setRobotName(message.Robot.Name)
-        console.log('Message from server:', message);
-        // Handle the message from the server (which might come from the robot)
-      };
-  
+        console.log('Message from server:', message)
+      }
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast.error('WebSocket error');
-      };
-  
+        console.error('WebSocket error:', error)
+        toast.error('WebSocket error')
+      }
       ws.onclose = () => {
-        console.log('WebSocket connection closed');
-        toast.info('WebSocket connection closed',{
+        console.log('WebSocket connection closed')
+        toast.info('WebSocket connection closed', {
           position: "top-center",
           autoClose: 300,
           hideProgressBar: false,
@@ -82,19 +78,17 @@ function Home() {
           draggable: true,
           progress: undefined,
           theme: "light",
-          // transition: Bounce,
-        });
-        setWsClient(null);
-      };
+        })
+        setWsClient(null)
+      }
     } catch (error) {
-      console.error(error);
+      console.error(error)
     }
   }
-
 
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      toast.success('Robot is Connected',{
+      toast.success('Robot is Connected', {
         position: "top-center",
         autoClose: 300,
         hideProgressBar: false,
@@ -103,10 +97,9 @@ function Home() {
         draggable: true,
         progress: undefined,
         theme: "light",
-        // transition: Bounce,
       })
     } else {
-      toast.error('Robot is not Connected',{
+      toast.error('Robot is not Connected', {
         position: "top-center",
         autoClose: 300,
         hideProgressBar: false,
@@ -115,43 +108,76 @@ function Home() {
         draggable: true,
         progress: undefined,
         theme: "light",
-        // transition: Bounce,
       })
     }
   }
 
-  const handleButtonClick = (button) => {
-    if (battery > 1 && battery < 20) {
-      toast.error('Battery level is too low, Robot is going to parking...');
-      handleParam('park');
-      return;
-    }
-    setIsPressed((prevState) => {
-      // Reset all buttons to false
-      const newState = {
+  // For left column pick buttons (out1, out2, out3)
+  const handlePickButtonClick = (button) => {
+    // If battery is low (and the selection isn’t Park or Charge), force park.
+    if (battery > 1 && battery < 20 && button !== 'park' && button !== 'charge') {
+      toast.error('Battery level is too low, Robot is going to parking...')
+      setPickPressed({
         out1: false,
         out2: false,
         out3: false,
-        out4: false,
-        out5: false,
-        out6: false,
-        park: false,
-      };
-      // Toggle the selected button: if it was not active, activate it.
-      if (!prevState[button]) {
-        newState[button] = true;
-      }
-      return newState;
-    });
-  };
+        park: true,
+        charge: false,
+      })
+      return
+    }
+    // Update the pick state in one call so that only the pressed button is true.
+    setPickPressed({
+      out1: false,
+      out2: false,
+      out3: false,
+      park: false,
+      charge: false,
+      [button]: true,
+    })
+  }
   
 
-  // Send the parameter via the WebSocket connection
-  const handleParam = (button) => {
+  // For right column drop buttons (out1, out2, out3)
+  const handleDropButtonClick = (button) => {
+    if (battery > 1 && battery < 20) {
+      toast.error('Battery level is too low, Robot is going to parking...')
+      // Force park selection on the pick side.
+      setPickPressed({
+        out1: false,
+        out2: false,
+        out3: false,
+        park: true,
+        charge: false,
+      })
+      return
+    }
+    setDropPressed({
+      out1: false,
+      out2: false,
+      out3: false,
+    })
+    setDropPressed((prev) => ({ ...prev, [button]: true }))
+  }
+
+  // For footer buttons: Park and Charge (now part of pick selections)
+  const handlePickFooterButtonClick = (button) => {
+    // Simply update the pick state.
+    setPickPressed((prev) => ({ ...prev, park: false, charge: false, [button]: true }))
+  }
+
+  // The extension (arrow) button sends the selection to the server.
+  const handleParam = (button, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      const message = { param: button }
+      console.log('Sending message:', button)
+      let message
+      if (group === 'drop') {
+        message = { '/drop_selection': button }
+      } else { // group 'pick'
+        message = { '/pick_selection': button }
+      }
       wsClient.send(JSON.stringify(message))
-      setParam(button)
+      setParam(`${group} - ${button}`)
     } else {
       console.error('WebSocket not connected')
       toast.error('WebSocket not connected')
@@ -164,23 +190,27 @@ function Home() {
 
   function handleCurrentParam(param) {
     const paramDescriptions = {
-      out1: 'İSTASYON 1',
-      out2: 'İSTASYON 2',
-      out3: 'İSTASYON 3',
-      out4: 'İSTASYON 4',
-      out5: 'İSTASYON 5',
-      out6: 'İSTASYON 6',
-      park: 'PARK',
+      "pick - out1": 'Pick 1',
+      "pick - out2": 'Pick 2',
+      "pick - out3": 'Pick 3',
+      "pick - park": 'Park',
+      "pick - charge": 'Charge',
+      "drop - out1": 'Drop 1',
+      "drop - out2": 'Drop 2',
+      "drop - out3": 'Drop 3',
     }
     return paramDescriptions[param] || param
   }
 
-  const renderExtensionButton = (button) => {
-    if (isPressed[button]) {
+  // Renders the extended arrow button only if the corresponding button is active.
+  // When clicked, it sends the selection.
+  const renderExtensionButton = (group, button) => {
+    const isActive = group === 'pick' ? pickPressed[button] : dropPressed[button]
+    if (isActive) {
       return (
         <div className={styles.extensionButtonWrapper}>
           <Button
-            disabled={!isPressed[button]}
+            disabled={!isActive}
             variant='outlined'
             style={{
               minWidth: 1,
@@ -190,7 +220,7 @@ function Home() {
               fontSize: '10px',
               fontWeight: 'bold',
             }}
-            onClick={() => handleParam(button)}
+            onClick={() => handleParam(button, group)}
           >
             <FaArrowCircleRight style={{ fontSize: '2.3em' }} />
           </Button>
@@ -212,7 +242,6 @@ function Home() {
           >
             YENİLE
           </Button>
-          {/* <Button>{robotName}</Button> */}
         </div>
         <h1
           className={styles.refreshButtonContainer}
@@ -223,7 +252,7 @@ function Home() {
             <Button
               style={{ marginLeft: '10px', fontSize: '10px' }}
               variant='outlined'
-              onClick={() => handleParam('')}
+              onClick={() => setParam('')}
             >
               İptal Et
             </Button>
@@ -243,34 +272,55 @@ function Home() {
           </h2>
           <Button onClick={checkConnection}>Bağlantı kontrolu</Button>
         </div>
+        {/* Main Buttons */}
         <div className={styles.mainButtons}>
+          {/* Left Column: Pick Buttons */}
           <div className={styles.pickButtons}>
-            {['out1', 'out2', 'out3', 'out4', 'out5', 'out6'].map(
-              (button, index) => (
-                <div key={index} className={styles.pickColumn}>
-                  <Button
-                    style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
-                    className={styles.pickButton}
-                    variant={isPressed[button] ? 'contained' : 'outlined'}
-                    onClick={() => handleButtonClick(button)}
-                  >
-                    İstasyon {index + 1}
-                  </Button>
-                  {renderExtensionButton(button)}
-                </div>
-              )
-            )}
+            {['out1', 'out2', 'out3'].map((button, index) => (
+              <div key={index} className={styles.pickColumn}>
+                <Button
+                  style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
+                  className={styles.pickButton}
+                  variant={pickPressed[button] ? 'contained' : 'outlined'}
+                  onClick={() => handlePickButtonClick(button)}
+                >
+                  {`Pick ${index + 1}`}
+                </Button>
+                {renderExtensionButton('pick', button)}
+              </div>
+            ))}
           </div>
-          <div className={styles.parkButtonContainer}>
-            <Button
-              style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
-              variant={isPressed.park ? 'contained' : 'outlined'}
-              onClick={() => handleButtonClick('park')}
-            >
-              Park
-            </Button>
-            {renderExtensionButton('park')}
+          {/* Right Column: Drop Buttons */}
+          <div className={styles.dropButtons}>
+            {['out1', 'out2', 'out3'].map((button, index) => (
+              <div key={index} className={styles.pickColumn}>
+                <Button
+                  style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
+                  className={styles.pickButton}
+                  variant={dropPressed[button] ? 'contained' : 'outlined'}
+                  onClick={() => handleDropButtonClick(button)}
+                >
+                  {`Drop ${index + 1}`}
+                </Button>
+                {renderExtensionButton('drop', button)}
+              </div>
+            ))}
           </div>
+        </div>
+        {/* Footer: Park and Charge (treated as pick selections) */}
+        <div className={styles.footer}>
+          {['park', 'charge'].map((button, index) => (
+            <div key={index} className={styles.pickColumn}>
+              <Button
+                className={styles.footerButton}
+                variant={pickPressed[button] ? 'contained' : 'outlined'}
+                onClick={() => handlePickButtonClick(button)}
+              >
+                {button.charAt(0).toUpperCase() + button.slice(1)}
+              </Button>
+              {renderExtensionButton('pick', button)}
+            </div>
+          ))}
         </div>
       </div>
     </>
