@@ -26,7 +26,7 @@ function Home() {
     out3: false,
   })
   // Stores the current selection to display.
-  const [param, setParam] = useState('')
+  const [param, setParam] = useState('None')
 
   // WebSocket server details
   const WS_SERVER_IP = '192.168.3.146'
@@ -46,22 +46,32 @@ function Home() {
       ws.onopen = () => {
         console.log('Connected to WebSocket server!')
         toast.success('Connected to WebSocket server!', {
-          position: "top-center",
+          position: 'top-center',
           autoClose: 300,
           hideProgressBar: false,
           closeOnClick: false,
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
-          theme: "light",
+          theme: 'light',
         })
         setWsClient(ws)
       }
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
         setBattery(message.Robot.battery_percentage)
-        setRobotName(message.Robot.Name)
-        console.log('Message from server:', message)
+        // setRobotName(message.Robot.Name)
+        // let count = 0
+        // if (
+        //   message.Robot.battery_percentage < 20 &&
+        //   message.Robot.battery_percentage > 1 &&
+        //   count === 0
+        // ) {
+        //   toast.error('Battery level is too low, Robot is going to charging...')
+        //   handleParam('charge', 'pick')
+        //   count = 1
+        // }
+        // console.log('Message from server:', message)
       }
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
@@ -70,14 +80,14 @@ function Home() {
       ws.onclose = () => {
         console.log('WebSocket connection closed')
         toast.info('WebSocket connection closed', {
-          position: "top-center",
+          position: 'top-center',
           autoClose: 300,
           hideProgressBar: false,
           closeOnClick: false,
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
-          theme: "light",
+          theme: 'light',
         })
         setWsClient(null)
       }
@@ -89,25 +99,25 @@ function Home() {
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       toast.success('Robot is Connected', {
-        position: "top-center",
+        position: 'top-center',
         autoClose: 300,
         hideProgressBar: false,
         closeOnClick: false,
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "light",
+        theme: 'light',
       })
     } else {
       toast.error('Robot is not Connected', {
-        position: "top-center",
+        position: 'top-center',
         autoClose: 300,
         hideProgressBar: false,
         closeOnClick: false,
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "light",
+        theme: 'light',
       })
     }
   }
@@ -115,14 +125,14 @@ function Home() {
   // For left column pick buttons (out1, out2, out3)
   const handlePickButtonClick = (button) => {
     // If battery is low (and the selection isn’t Park or Charge), force park.
-    if (battery > 1 && battery < 20 && button !== 'park' && button !== 'charge') {
-      toast.error('Battery level is too low, Robot is going to parking...')
+    if (battery > 1 && battery < 20 && button !== 'charge') {
+      toast.error('Battery level is too low, Robot is going to charging...')
       setPickPressed({
         out1: false,
         out2: false,
         out3: false,
-        park: true,
-        charge: false,
+        park: false,
+        charge: true,
       })
       return
     }
@@ -136,19 +146,18 @@ function Home() {
       [button]: true,
     })
   }
-  
 
   // For right column drop buttons (out1, out2, out3)
   const handleDropButtonClick = (button) => {
     if (battery > 1 && battery < 20) {
-      toast.error('Battery level is too low, Robot is going to parking...')
+      toast.error('Battery level is too low, Robot is going to charging ...')
       // Force park selection on the pick side.
       setPickPressed({
         out1: false,
         out2: false,
         out3: false,
-        park: true,
-        charge: false,
+        park: false,
+        charge: true,
       })
       return
     }
@@ -163,7 +172,12 @@ function Home() {
   // For footer buttons: Park and Charge (now part of pick selections)
   const handlePickFooterButtonClick = (button) => {
     // Simply update the pick state.
-    setPickPressed((prev) => ({ ...prev, park: false, charge: false, [button]: true }))
+    setPickPressed((prev) => ({
+      ...prev,
+      park: false,
+      charge: false,
+      [button]: true,
+    }))
   }
 
   // The extension (arrow) button sends the selection to the server.
@@ -173,8 +187,19 @@ function Home() {
       let message
       if (group === 'drop') {
         message = { '/drop_selection': button }
-      } else { // group 'pick'
+      } else if (group === 'pick') {
+        // group 'pick'
         message = { '/pick_selection': button }
+      } else if (group === 'None') {
+        const message1 = { '/pick_selection': button }
+        const message2 = { '/drop_selection': button }
+        const message3 = { '/navigation_cancel': 'stop' }
+
+        wsClient.send(JSON.stringify(message1))
+        wsClient.send(JSON.stringify(message2))
+        wsClient.send(JSON.stringify(message3))
+        setParam('None')
+        return
       }
       wsClient.send(JSON.stringify(message))
       setParam(`${group} - ${button}`)
@@ -190,22 +215,45 @@ function Home() {
 
   function handleCurrentParam(param) {
     const paramDescriptions = {
-      "pick - out1": 'Pick 1',
-      "pick - out2": 'Pick 2',
-      "pick - out3": 'Pick 3',
-      "pick - park": 'Park',
-      "pick - charge": 'Charge',
-      "drop - out1": 'Drop 1',
-      "drop - out2": 'Drop 2',
-      "drop - out3": 'Drop 3',
+      'pick - out1': 'Pick 1',
+      'pick - out2': 'Pick 2',
+      'pick - out3': 'Pick 3',
+      'pick - park': 'Park',
+      'pick - charge': 'Charge',
+      'drop - out1': 'Drop 1',
+      'drop - out2': 'Drop 2',
+      'drop - out3': 'Drop 3',
     }
     return paramDescriptions[param] || param
   }
 
+  function handleNone(params) {
+    setParam('None')
+    // for (let index = 0; index < 4; index++) {
+    handleParam('None', 'None')
+    // console.log('sending', index)
+    // }
+    if (params === 'pick - park' || params === 'pick - charge') {
+      setPickPressed({
+        out1: false,
+        out2: false,
+        out3: false,
+        park: false,
+        charge: false,
+      })
+    } else {
+      setDropPressed({
+        out1: false,
+        out2: false,
+        out3: false,
+      })
+    }
+  }
   // Renders the extended arrow button only if the corresponding button is active.
   // When clicked, it sends the selection.
   const renderExtensionButton = (group, button) => {
-    const isActive = group === 'pick' ? pickPressed[button] : dropPressed[button]
+    const isActive =
+      group === 'pick' ? pickPressed[button] : dropPressed[button]
     if (isActive) {
       return (
         <div className={styles.extensionButtonWrapper}>
@@ -236,7 +284,12 @@ function Home() {
         <Logo />
         <div className={styles.refreshButtonContainer}>
           <Button
-            style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
+            style={{
+              width: '150px',
+              height: '50px',
+              fontSize: '10px',
+              fontWeight: 'bold',
+            }}
             variant='outlined'
             onClick={refreshPage}
           >
@@ -247,16 +300,17 @@ function Home() {
           className={styles.refreshButtonContainer}
           style={{ color: '#1976D2', fontSize: '17px', marginTop: '15px' }}
         >
-          {handleCurrentParam(param)}
-          {param && (
+          {param !== 'None' && handleCurrentParam(param)}
+
+          {
             <Button
               style={{ marginLeft: '10px', fontSize: '10px' }}
               variant='outlined'
-              onClick={() => setParam('')}
+              onClick={() => handleNone(param)}
             >
-              İptal Et
+              {param === 'None' ? 'Durdur' : 'İptal Et'}
             </Button>
-          )}
+          }
         </h1>
         <BatteryStatus level={battery} />
         <ToastContainer />
@@ -279,7 +333,12 @@ function Home() {
             {['out1', 'out2', 'out3'].map((button, index) => (
               <div key={index} className={styles.pickColumn}>
                 <Button
-                  style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
+                  style={{
+                    width: '150px',
+                    height: '50px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                  }}
                   className={styles.pickButton}
                   variant={pickPressed[button] ? 'contained' : 'outlined'}
                   onClick={() => handlePickButtonClick(button)}
@@ -295,7 +354,12 @@ function Home() {
             {['out1', 'out2', 'out3'].map((button, index) => (
               <div key={index} className={styles.pickColumn}>
                 <Button
-                  style={{ width: '150px', height: '50px', fontSize: '10px', fontWeight: 'bold' }}
+                  style={{
+                    width: '150px',
+                    height: '50px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                  }}
                   className={styles.pickButton}
                   variant={dropPressed[button] ? 'contained' : 'outlined'}
                   onClick={() => handleDropButtonClick(button)}
