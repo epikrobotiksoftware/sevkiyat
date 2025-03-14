@@ -34,7 +34,7 @@ const BatteryStatus = ({ level }) => {
           justifyContent: 'center',
           fontWeight: 'bold',
           fontSize: '16px',
-          color: level < 50 ? 'white' : 'black', // Ensure visibility of text
+          color: level < 30 ? 'red' : 'black', 
         }}
       >
         <div
