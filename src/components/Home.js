@@ -11,6 +11,7 @@ function Home() {
   const [battery, setBattery] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [robotName, setRobotName] = useState('')
+    const [autoCharged, setAutoCharged] = useState(false)
   // Combined state for pick selection: out1, out2, out3, park, and charge.
   const [pickPressed, setPickPressed] = useState({
     out1: false,
@@ -60,18 +61,7 @@ function Home() {
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
         setBattery(message.Robot.battery_percentage)
-        // setRobotName(message.Robot.Name)
-        // let count = 0
-        // if (
-        //   message.Robot.battery_percentage < 20 &&
-        //   message.Robot.battery_percentage > 1 &&
-        //   count === 0
-        // ) {
-        //   toast.error('Battery level is too low, Robot is going to charging...')
-        //   handleParam('charge', 'pick')
-        //   count = 1
-        // }
-        // console.log('Message from server:', message)
+
       }
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
@@ -95,6 +85,34 @@ function Home() {
       console.error(error)
     }
   }
+    useEffect(() => {
+      if (battery < 20 && !autoCharged) {
+        console.log('Battery < 20%, auto-charging now...')
+        toast.error(
+          'Battery level is too low, going to charging automatically...'
+        )
+
+        // Force "charge" selected in pickPressed
+        setPickPressed({
+          out1: false,
+          out2: false,
+          out3: false,
+          park: false,
+          charge: true,
+        })
+
+        // Send the "charge" command to the server:
+        handleParam('charge', 'pick')
+
+        // Mark that we've auto-charged so we only send once
+        setAutoCharged(true)
+      }
+
+      // OPTIONAL: if you want to re-enable auto-charge once battery is back above 20:
+      if (battery >= 20 && autoCharged) {
+        setAutoCharged(false)
+      }
+    }, [battery, autoCharged])
 
   function checkConnection() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
