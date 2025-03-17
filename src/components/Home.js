@@ -5,14 +5,7 @@ import Button from '@mui/material/Button'
 import BatteryStatus from './BatteryStatus'
 import { FaArrowCircleRight } from 'react-icons/fa'
 import Logo from './Logo'
-import Modal from '@mui/material/Modal'
-import Box from '@mui/material/Box'
-import TextField from '@mui/material/TextField'
-import Radio from '@mui/material/Radio'
-import RadioGroup from '@mui/material/RadioGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import FormControl from '@mui/material/FormControl'
-import FormLabel from '@mui/material/FormLabel'
+import ChargingModal from './ChargingModal' // Import the new component
 import styles from './home.module.css'
 
 function Home() {
@@ -20,7 +13,6 @@ function Home() {
   const [wsClient, setWsClient] = useState(null)
   const [robotName, setRobotName] = useState('')
   const [autoCharged, setAutoCharged] = useState(false)
-  // Combined state for pick selection: out1, out2, out3, park, and charge.
   const [pickPressed, setPickPressed] = useState({
     out1: false,
     out2: false,
@@ -28,32 +20,15 @@ function Home() {
     park: false,
     charge: false,
   })
-  // State for drop selection: out1, out2, out3.
   const [dropPressed, setDropPressed] = useState({
     out1: false,
     out2: false,
     out3: false,
   })
-  // Stores the current selection to display.
   const [param, setParam] = useState('None')
 
-  // New state for the charge modal
+  // State for opening the charge modal
   const [openChargeModal, setOpenChargeModal] = useState(false)
-  const [chargeMode, setChargeMode] = useState('percentage')
-  const [chargeValue, setChargeValue] = useState('')
-
-  // Material UI modal style
-  const modalStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 300,
-    backgroundColor: 'white',
-    border: '2px solid #000',
-    boxShadow: 24,
-    padding: '16px',
-  }
 
   // WebSocket server details
   const WS_SERVER_IP = '192.168.3.146'
@@ -67,7 +42,6 @@ function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Connect to the WebSocket server
   function connect() {
     try {
       const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
@@ -118,7 +92,6 @@ function Home() {
       toast.error(
         'Battery level is too low, going to charging automatically...'
       )
-      // Force "charge" selected in pickPressed and send the command immediately
       setPickPressed({
         out1: false,
         out2: false,
@@ -126,20 +99,13 @@ function Home() {
         park: false,
         charge: true,
       })
-      const message1 = {
-        '/ChargePercentageSelection': 100,
-      }
-      const message2 = {
-        '/ChargeMinuteSelection': 'None',
-      }
-
+      const message1 = { '/ChargePercentageSelection': 100 }
+      const message2 = { '/ChargeMinuteSelection': 'None' }
       wsClient.send(JSON.stringify(message1))
       wsClient.send(JSON.stringify(message2))
       handleParam('charge', 'pick')
       setAutoCharged(true)
     }
-
-    // OPTIONAL: re-enable auto-charge once battery is back above 20:
     if (battery >= 20 && autoCharged) {
       setAutoCharged(false)
     }
@@ -171,14 +137,11 @@ function Home() {
     }
   }
 
-  // For left column pick buttons (out1, out2, out3, park, charge)
   const handlePickButtonClick = (button) => {
-    // If the Charge button is clicked, open the modal instead of sending the command immediately.
     if (button === 'charge') {
       setOpenChargeModal(true)
       return
     }
-    // If battery is low (and the selection isn’t Park or Charge), force charge.
     if (battery > 1 && battery < 20 && button !== 'charge') {
       toast.error('Battery level is too low, Robot is going to charging...')
       setPickPressed({
@@ -191,7 +154,6 @@ function Home() {
       handleParam('charge', 'pick')
       return
     }
-    // Update the pick state so that only the pressed button is true.
     setPickPressed({
       out1: false,
       out2: false,
@@ -202,11 +164,9 @@ function Home() {
     })
   }
 
-  // For right column drop buttons (out1, out2, out3)
   const handleDropButtonClick = (button) => {
     if (battery > 1 && battery < 20) {
       toast.error('Battery level is too low, Robot is going to charging ...')
-      // Force charge selection on the pick side.
       setPickPressed({
         out1: false,
         out2: false,
@@ -224,7 +184,6 @@ function Home() {
     setDropPressed((prev) => ({ ...prev, [button]: true }))
   }
 
-  // For footer buttons: Park and Charge (treated as pick selections)
   const handlePickFooterButtonClick = (button) => {
     setPickPressed((prev) => ({
       ...prev,
@@ -234,7 +193,6 @@ function Home() {
     }))
   }
 
-  // Send the selection to the server.
   const handleParam = (button, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       console.log('Sending message:', button)
@@ -299,7 +257,6 @@ function Home() {
     }
   }
 
-  // Renders the extended arrow button only if the corresponding button is active.
   const renderExtensionButton = (group, button) => {
     const isActive =
       group === 'pick' ? pickPressed[button] : dropPressed[button]
@@ -325,59 +282,6 @@ function Home() {
       )
     }
     return null
-  }
-
-  // Handle the submission of the charge modal
-  const handleChargeSubmit = () => {
-    if (!chargeValue) {
-      toast.error('Please enter a valid value for charging.')
-      return
-    }
-    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      const message = {
-        '/pick_selection': 'charge',
-        // mode: chargeMode,
-        // value: chargeValue,
-      }
-      if (chargeMode === 'percentage') {
-        const message1 = {
-          '/ChargePercentageSelection': chargeValue,
-        }
-        const message2 = {
-          '/ChargeMinuteSelection': 'None',
-        }
-
-        wsClient.send(JSON.stringify(message1))
-        wsClient.send(JSON.stringify(message2))
-      } else if (chargeMode === 'time') {
-        const message1 = {
-          '/ChargeMinuteSelection': chargeValue,
-        }
-        const message2 = {
-          '/ChargePercentageSelection': 'None',
-        }
-        wsClient.send(JSON.stringify(message1))
-        wsClient.send(JSON.stringify(message2))
-      }
-      wsClient.send(JSON.stringify(message))
-      setParam(`Charge (${chargeMode}: ${chargeValue})`)
-      setPickPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-        park: false,
-        charge: true,
-      })
-      setOpenChargeModal(false)
-      setChargeValue('')
-    } else {
-      toast.error('WebSocket not connected')
-    }
-  }
-
-  const handleChargeCancel = () => {
-    setOpenChargeModal(false)
-    setChargeValue('')
   }
 
   return (
@@ -425,9 +329,7 @@ function Home() {
           </h2>
           <Button onClick={checkConnection}>Bağlantı kontrolu</Button>
         </div>
-        {/* Main Buttons */}
         <div className={styles.mainButtons}>
-          {/* Left Column: Pick Buttons */}
           <div className={styles.pickButtons}>
             {['out1', 'out2', 'out3'].map((button, index) => (
               <div key={index} className={styles.pickColumn}>
@@ -448,7 +350,6 @@ function Home() {
               </div>
             ))}
           </div>
-          {/* Right Column: Drop Buttons */}
           <div className={styles.dropButtons}>
             {['out1', 'out2', 'out3'].map((button, index) => (
               <div key={index} className={styles.pickColumn}>
@@ -470,7 +371,6 @@ function Home() {
             ))}
           </div>
         </div>
-        {/* Footer: Park and Charge (treated as pick selections) */}
         <div className={styles.footer}>
           {['park', 'charge'].map((button, index) => (
             <div key={index} className={styles.pickColumn}>
@@ -486,63 +386,24 @@ function Home() {
           ))}
         </div>
       </div>
-      {/* Charge Modal */}
-      <Modal
+      {/* Use the extracted ChargingModal component */}
+      <ChargingModal
         open={openChargeModal}
-        onClose={handleChargeCancel}
-        aria-labelledby='charge-modal-title'
-        aria-describedby='charge-modal-description'
-      >
-        <Box sx={modalStyle}>
-          <h2 id='charge-modal-title'>Charge Settings</h2>
-          <FormControl component='fieldset' fullWidth>
-            <FormLabel component='legend'>Charge Mode</FormLabel>
-            <RadioGroup
-              row
-              value={chargeMode}
-              onChange={(e) => setChargeMode(e.target.value)}
-            >
-              <FormControlLabel
-                value='percentage'
-                control={<Radio />}
-                label='Percentage'
-              />
-              <FormControlLabel value='time' control={<Radio />} label='Time' />
-            </RadioGroup>
-          </FormControl>
-          <TextField
-            label={
-              chargeMode === 'percentage'
-                ? 'Enter percentage'
-                : 'Enter time (in minutes)'
-            }
-            type='number'
-            value={chargeValue}
-            onChange={(e) => setChargeValue(e.target.value)}
-            fullWidth
-            margin='normal'
-          />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '10px',
-              marginTop: '10px',
-            }}
-          >
-            <Button variant='outlined' onClick={handleChargeCancel}>
-              Cancel
-            </Button>
-            <Button variant='contained' onClick={handleChargeSubmit}>
-              Confirm
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+        onClose={() => setOpenChargeModal(false)}
+        wsClient={wsClient}
+        onSubmit={(param) => {
+          setParam(param)
+          setPickPressed({
+            out1: false,
+            out2: false,
+            out3: false,
+            park: false,
+            charge: true,
+          })
+        }}
+      />
     </>
   )
 }
 
 export default Home
-// ChargeMinuteSelection
-// ChargePercentageSelection
