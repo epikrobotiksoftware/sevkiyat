@@ -25,7 +25,8 @@ function Home() {
     out2: false,
     out3: false,
   })
-  const [param, setParam] = useState('None')
+  // const [param, setParam] = useState('None')
+  const [param, setParam] = useState({ pick: 'None', drop: 'None' })
 
   // State for opening the charge modal
   const [openChargeModal, setOpenChargeModal] = useState(false)
@@ -195,12 +196,14 @@ function Home() {
 
   const handleParam = (button, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      console.log('Sending message:', button)
       let message
+
       if (group === 'drop') {
         message = { '/drop_selection': button }
+        setParam((prev) => ({ ...prev, drop: button }))
       } else if (group === 'pick') {
         message = { '/pick_selection': button }
+        setParam((prev) => ({ ...prev, pick: button }))
       } else if (group === 'None') {
         const message1 = { '/pick_selection': button }
         const message2 = { '/drop_selection': button }
@@ -208,11 +211,11 @@ function Home() {
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
         wsClient.send(JSON.stringify(message3))
-        setParam('None')
+        setParam({ pick: 'None', drop: 'None' })
         return
       }
+
       wsClient.send(JSON.stringify(message))
-      setParam(`${group} - ${button}`)
     } else {
       console.error('WebSocket not connected')
       toast.error('WebSocket not connected')
@@ -224,17 +227,16 @@ function Home() {
   }
 
   function handleCurrentParam(param) {
-    const paramDescriptions = {
-      'pick - out1': 'Pick 1',
-      'pick - out2': 'Pick 2',
-      'pick - out3': 'Pick 3',
-      'pick - park': 'Park',
-      'pick - charge': 'Charge',
-      'drop - out1': 'Drop 1',
-      'drop - out2': 'Drop 2',
-      'drop - out3': 'Drop 3',
+    const { pick, drop } = param
+
+    if (pick !== 'None' && drop !== 'None') {
+      return `${pick} -> ${drop}`
+    } else if (pick !== 'None') {
+      return `Pick: ${pick}`
+    } else if (drop !== 'None') {
+      return `Drop: ${drop}`
     }
-    return paramDescriptions[param] || param
+    return 'None'
   }
 
   function handleNone(params) {
@@ -306,15 +308,20 @@ function Home() {
           className={styles.refreshButtonContainer}
           style={{ color: '#1976D2', fontSize: '17px', marginTop: '15px' }}
         >
-          {param !== 'None' && handleCurrentParam(param)}
+          {param.pick !== 'None' || param.drop !== 'None'
+            ? handleCurrentParam(param)
+            : ''}
           <Button
             style={{ marginLeft: '10px', fontSize: '10px' }}
             variant='outlined'
             onClick={() => handleNone(param)}
           >
-            {param === 'None' ? 'Durdur' : 'İptal Et'}
+            {param.pick === 'None' && param.drop === 'None'
+              ? 'Durdur'
+              : 'İptal Et'}
           </Button>
         </h1>
+
         <BatteryStatus level={battery} />
         <ToastContainer />
         <div className={styles.container}>
