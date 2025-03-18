@@ -197,13 +197,16 @@ function Home() {
   const handleParam = (button, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       let message
+      let label = ''
 
       if (group === 'drop') {
-        message = { '/drop_selection': button }
-        setParam((prev) => ({ ...prev, drop: button }))
+        // Generate the Drop{number} format
+        label = `Drop${button.replace('out', '')}`
+        setParam((prev) => ({ ...prev, drop: label }))
       } else if (group === 'pick') {
-        message = { '/pick_selection': button }
-        setParam((prev) => ({ ...prev, pick: button }))
+        // Generate the Pick{number} format
+        label = `Pick${button.replace('out', '')}`
+        setParam((prev) => ({ ...prev, pick: label }))
       } else if (group === 'None') {
         const message1 = { '/pick_selection': button }
         const message2 = { '/drop_selection': button }
@@ -215,6 +218,7 @@ function Home() {
         return
       }
 
+      // Send the message to the WebSocket server
       wsClient.send(JSON.stringify(message))
     } else {
       console.error('WebSocket not connected')
