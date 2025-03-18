@@ -70,9 +70,9 @@ const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
       aria-describedby='charge-modal-description'
     >
       <Box sx={modalStyle}>
-        <h2 id='charge-modal-title'>Charge Settings</h2>
+        <h2 id='charge-modal-title'>Şarj Ayarları</h2>
         <FormControl component='fieldset' fullWidth>
-          <FormLabel component='legend'>Charge Mode</FormLabel>
+          <FormLabel component='legend'>Mod</FormLabel>
           <RadioGroup
             row
             value={chargeMode}
@@ -81,16 +81,20 @@ const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
             <FormControlLabel
               value='percentage'
               control={<Radio />}
-              label='Percentage'
+              label='Yüzdelik Oran'
             />
-            <FormControlLabel value='time' control={<Radio />} label='Time' />
+            <FormControlLabel
+              value='time'
+              control={<Radio />}
+              label='Zamansal(Dakika)'
+            />
           </RadioGroup>
         </FormControl>
         <TextField
           label={
             chargeMode === 'percentage'
-              ? 'Enter percentage'
-              : 'Enter time (in minutes)'
+              ? ' Yüzdelik Oran Giriniz'
+              : ' Zaman Giriniz (Dakika)'
           }
           type='number'
           value={chargeValue}
@@ -107,10 +111,10 @@ const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
           }}
         >
           <Button variant='outlined' onClick={handleCancel}>
-            Cancel
+            İptal
           </Button>
           <Button variant='contained' onClick={handleChargeSubmit}>
-            Confirm
+            Gönder
           </Button>
         </div>
       </Box>

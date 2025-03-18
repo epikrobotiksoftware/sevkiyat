@@ -236,7 +236,7 @@ function Home() {
     if (pick !== 'None' && drop !== 'None') {
       return `${pick} -> ${drop}`
     } else if (pick !== 'None') {
-      return `Pick: ${pick}`
+      return `${pick} -> Seçim Bekleniyor`
     } else if (drop !== 'None') {
       return `Drop: ${drop}`
     }
