@@ -32,7 +32,7 @@ function Home() {
   const [openChargeModal, setOpenChargeModal] = useState(false)
 
   // WebSocket server details
-  const WS_SERVER_IP = '192.168.3.146'
+  const WS_SERVER_IP = process.env.REACT_APP_SERVER
   const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
