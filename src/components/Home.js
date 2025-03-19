@@ -407,7 +407,7 @@ function Home() {
         onClose={() => setOpenChargeModal(false)}
         wsClient={wsClient}
         onSubmit={(param) => {
-          setParam(param)
+          setParam({ pick: param, drop: '' })
           setPickPressed({
             out1: false,
             out2: false,
