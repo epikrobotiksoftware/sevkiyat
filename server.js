@@ -26,13 +26,15 @@ wss.on('connection', (ws, req) => {
     // console.log(`Received message from ${isReact ? 'React' : 'Robot'}:`, message)
 
     if (isReact) {
-      robotClients.forEach(robot => {
+      robotClients.forEach((robot) => {
         if (robot.readyState === WebSocket.OPEN) {
+          console.log(message)
+
           robot.send(message)
         }
       })
     } else {
-      reactClients.forEach(react => {
+      reactClients.forEach((react) => {
         if (react.readyState === WebSocket.OPEN) {
           react.send(message)
         }

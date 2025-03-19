@@ -202,10 +202,13 @@ function Home() {
       if (group === 'drop') {
         // Generate the Drop{number} format
         label = `Drop${button.replace('out', '')}`
+        message = { '/drop_selection': button }
         setParam((prev) => ({ ...prev, drop: label }))
       } else if (group === 'pick') {
         // Generate the Pick{number} format
         label = `Pick${button.replace('out', '')}`
+        message = { '/pick_selection': button }
+
         setParam((prev) => ({ ...prev, pick: label }))
       } else if (group === 'None') {
         const message1 = { '/pick_selection': button }
@@ -217,6 +220,7 @@ function Home() {
         setParam({ pick: 'None', drop: 'None' })
         return
       }
+      console.log(JSON.stringify(message))
 
       // Send the message to the WebSocket server
       wsClient.send(JSON.stringify(message))
