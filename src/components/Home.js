@@ -33,6 +33,7 @@ function Home() {
 
   // WebSocket server details
   const WS_SERVER_IP = process.env.REACT_APP_SERVER
+  // const WS_SERVER_IP = process.env.REACT_APP_LOCAL
   const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
@@ -206,9 +207,8 @@ function Home() {
         setParam((prev) => ({ ...prev, drop: label }))
       } else if (group === 'pick') {
         // Generate the Pick{number} format
-        label = `Pick${button.replace('out', '')}`
+        label = button === 'park' ? 'Park' : `Pick${button.replace('out', '')}`
         message = { '/pick_selection': button }
-
         setParam((prev) => ({ ...prev, pick: label }))
       } else if (group === 'None') {
         const message1 = { '/pick_selection': button }
