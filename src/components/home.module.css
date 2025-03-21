@@ -59,3 +59,9 @@
   font-weight: bold;
   margin: 0 10px;
 }
+.footerLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 150px;
+}

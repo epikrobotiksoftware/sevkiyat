@@ -7,6 +7,7 @@ import { FaArrowCircleRight } from 'react-icons/fa'
 import Logo from './Logo'
 import ChargingModal from './ChargingModal' // Import the new component
 import styles from './home.module.css'
+import logoImage from '../Epik.jpeg'
 
 function Home() {
   const [battery, setBattery] = useState(0)
@@ -63,6 +64,8 @@ function Home() {
       }
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
+        console.log(message)
+
         setBattery(message.Robot.battery_percentage)
       }
       ws.onerror = (error) => {
@@ -399,6 +402,13 @@ function Home() {
               {renderExtensionButton('pick', button)}
             </div>
           ))}
+        </div>
+        {/* Add this section below */}
+        <div className={styles.footerLogo}>
+          <span style={{ fontSize: '12px', marginRight: '5px' }}>
+            Powered by
+          </span>
+          <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
         </div>
       </div>
       {/* Use the extracted ChargingModal component */}
