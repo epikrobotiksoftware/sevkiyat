@@ -1,14 +1,15 @@
 // Logo.js
 import React from 'react'
-import logoImage from '../Epik.jpeg' // Replace './logo.png' with the path to your logo image
+import logoImage from '../Epik.jpeg' 
 
 function Logo() {
+  const url = 'https://profsentetik.com/app/Images/logodark_1679312205.svg'
   return (
     <div style={{ textAlign: 'center', margin: '20px 0' }}>
       <img
-        src={logoImage}
+        src={url}
         alt='Logo'
-        style={{ maxWidth: '30%', height: 'auto' }}
+        style={{ maxWidth: '30%', height: '150px' }}
       />
     </div>
   )
