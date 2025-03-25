@@ -66,7 +66,7 @@ function Home() {
         const message = JSON.parse(event.data)
         console.log(message)
 
-        setBattery(message.Robot.battery_percentage)
+        setBattery(message.Robot.battery_percentage || 0)
       }
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
