@@ -3,38 +3,29 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Button from '@mui/material/Button'
 import BatteryStatus from './BatteryStatus'
-import { FaArrowCircleRight } from 'react-icons/fa'
+import { FaArrowCircleUp, FaArrowCircleDown } from 'react-icons/fa'
 import Logo from './Logo'
-import ChargingModal from './ChargingModal' // Import the new component
+import ChargingModal from './ChargingModal'
 import styles from './home.module.css'
 import logoImage from '../Epik.jpeg'
 
 function Home() {
+  // Basic states
   const [battery, setBattery] = useState(0)
   const [wsClient, setWsClient] = useState(null)
-  const [robotName, setRobotName] = useState('')
   const [autoCharged, setAutoCharged] = useState(false)
-  const [pickPressed, setPickPressed] = useState({
-    out1: false,
-    out2: false,
-    out3: false,
-    park: false,
-    charge: false,
-  })
-  const [dropPressed, setDropPressed] = useState({
-    out1: false,
-    out2: false,
-    out3: false,
-  })
-  // const [param, setParam] = useState('None')
-  const [param, setParam] = useState({ pick: 'None', drop: 'None' })
 
-  // State for opening the charge modal
+  // Dynamic station selection states (we remove selectionStage)
+  const [pickStation, setPickStation] = useState(null)
+  const [dropStation, setDropStation] = useState(null)
+  // activeStation: the station for which the extension options are shown
+  const [activeStation, setActiveStation] = useState(null)
+
+  // State for the charging modal (if needed)
   const [openChargeModal, setOpenChargeModal] = useState(false)
 
   // WebSocket server details
   const WS_SERVER_IP = process.env.REACT_APP_SERVER
-  // const WS_SERVER_IP = process.env.REACT_APP_LOCAL
   const WS_SERVER_PORT = '8701'
 
   useEffect(() => {
@@ -53,19 +44,12 @@ function Home() {
         toast.success('Connected to WebSocket server!', {
           position: 'top-center',
           autoClose: 300,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: 'light',
         })
         setWsClient(ws)
       }
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
         console.log(message)
-
         setBattery(message.Robot.battery_percentage || 0)
       }
       ws.onerror = (error) => {
@@ -77,12 +61,6 @@ function Home() {
         toast.info('WebSocket connection closed', {
           position: 'top-center',
           autoClose: 300,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: 'light',
         })
         setWsClient(null)
       }
@@ -91,19 +69,14 @@ function Home() {
     }
   }
 
+  // Auto-charge if battery is low
   useEffect(() => {
     if (battery < 20 && battery > 1 && !autoCharged) {
       console.log('Battery < 20%, auto-charging now...')
       toast.error(
         'Battery level is too low, going to charging automatically...'
       )
-      setPickPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-        park: false,
-        charge: true,
-      })
+      setPickStation('charge')
       const message1 = { '/ChargePercentageSelection': 100 }
       const message2 = { '/ChargeMinuteSelection': 'None' }
       wsClient.send(JSON.stringify(message1))
@@ -114,118 +87,26 @@ function Home() {
     if (battery >= 20 && autoCharged) {
       setAutoCharged(false)
     }
-  }, [battery, autoCharged])
+  }, [battery, autoCharged, wsClient])
 
-  function checkConnection() {
+  // Send appropriate WebSocket message for pick/drop/cancellation
+  const handleParam = (station, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      toast.success('Robot is Connected', {
-        position: 'top-center',
-        autoClose: 300,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
-      })
-    } else {
-      toast.error('Robot is not Connected', {
-        position: 'top-center',
-        autoClose: 300,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
-      })
-    }
-  }
-
-  const handlePickButtonClick = (button) => {
-    if (button === 'charge') {
-      setOpenChargeModal(true)
-      return
-    }
-    if (battery > 1 && battery < 20 && button !== 'charge') {
-      toast.error('Battery level is too low, Robot is going to charging...')
-      setPickPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-        park: false,
-        charge: true,
-      })
-      handleParam('charge', 'pick')
-      return
-    }
-    setPickPressed({
-      out1: false,
-      out2: false,
-      out3: false,
-      park: false,
-      charge: false,
-      [button]: true,
-    })
-  }
-
-  const handleDropButtonClick = (button) => {
-    if (battery > 1 && battery < 20) {
-      toast.error('Battery level is too low, Robot is going to charging ...')
-      setPickPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-        park: false,
-        charge: true,
-      })
-      return
-    }
-    setDropPressed({
-      out1: false,
-      out2: false,
-      out3: false,
-    })
-    setDropPressed((prev) => ({ ...prev, [button]: true }))
-  }
-
-  const handlePickFooterButtonClick = (button) => {
-    setPickPressed((prev) => ({
-      ...prev,
-      park: false,
-      charge: false,
-      [button]: true,
-    }))
-  }
-
-  const handleParam = (button, group) => {
-    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      let message
-      let label = ''
-
+      let message = {}
       if (group === 'drop') {
-        // Generate the Drop{number} format
-        label = `Drop${button.replace('out', '')}`
-        message = { '/drop_selection': button }
-        setParam((prev) => ({ ...prev, drop: label }))
+        message = { '/drop_selection': station }
       } else if (group === 'pick') {
-        // Generate the Pick{number} format
-        label = button === 'park' ? 'Park' : `Pick${button.replace('out', '')}`
-        message = { '/pick_selection': button }
-        setParam((prev) => ({ ...prev, pick: label }))
+        message = { '/pick_selection': station }
       } else if (group === 'None') {
-        const message1 = { '/pick_selection': button }
-        const message2 = { '/drop_selection': button }
+        const message1 = { '/pick_selection': station }
+        const message2 = { '/drop_selection': station }
         const message3 = { '/navigation_cancel': 'stop' }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
         wsClient.send(JSON.stringify(message3))
-        setParam({ pick: 'None', drop: 'None' })
         return
       }
       console.log(JSON.stringify(message))
-
-      // Send the message to the WebSocket server
       wsClient.send(JSON.stringify(message))
     } else {
       console.error('WebSocket not connected')
@@ -233,69 +114,68 @@ function Home() {
     }
   }
 
-  function refreshPage() {
-    window.location.reload()
-  }
-
-  function handleCurrentParam(param) {
-    const { pick, drop } = param
-
-    if (pick !== 'None' && drop !== 'None') {
-      return `${pick} -> ${drop}`
-    } else if (pick !== 'None') {
-      return `${pick} -> Seçim Bekleniyor`
-    } else if (drop !== 'None') {
-      return `Drop: ${drop}`
+  // Handle a station button click – shows extension options
+  const handleStationClick = (station) => {
+    // For "charge", open the modal if needed
+    if (station === 'charge') {
+      setOpenChargeModal(true)
+      return
     }
-    return 'None'
+    // Check battery level before allowing selection
+    if (battery > 1 && battery < 20 && station !== 'charge') {
+      toast.error('Battery level is too low, Robot is going to charging...')
+      setPickStation('charge')
+      handleParam('charge', 'pick')
+      return
+    }
+    setActiveStation(station)
   }
 
-  function handleNone(params) {
-    setParam('None')
+  // When user selects an action (pick or drop) for the active station
+  // Now, these actions update the state immediately regardless of prior state.
+  const handleSelection = (station, action) => {
+    if (action === 'pick') {
+      // Ensure pick and drop are not the same
+      if (dropStation && station === dropStation) {
+        toast.error('Pick and drop stations cannot be the same.')
+        return
+      }
+      setPickStation(station)
+      handleParam(station, 'pick')
+    } else if (action === 'drop') {
+      if (pickStation && station === pickStation) {
+        toast.error('Pick and drop stations cannot be the same.')
+        return
+      }
+      setDropStation(station)
+      handleParam(station, 'drop')
+    }
+    // Hide the extension options after a selection
+    setActiveStation(null)
+  }
+
+  // Reset selection (cancel)
+  const handleCancel = () => {
+    setPickStation(null)
+    setDropStation(null)
+    setActiveStation(null)
     handleParam('None', 'None')
-    if (params === 'pick - park' || params === 'pick - charge') {
-      setPickPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-        park: false,
-        charge: false,
-      })
+  }
+
+  // Display the current selection state based solely on pickStation and dropStation
+  const renderStationStatus = () => {
+    if (!pickStation) {
+      return 'Awaiting pick station selection'
+    } else if (!dropStation) {
+      return `Pick: ${pickStation} → Awaiting drop station selection`
     } else {
-      setDropPressed({
-        out1: false,
-        out2: false,
-        out3: false,
-      })
+      return `Pick: ${pickStation} → Drop: ${dropStation}`
     }
   }
 
-  const renderExtensionButton = (group, button) => {
-    const isActive =
-      group === 'pick' ? pickPressed[button] : dropPressed[button]
-    if (isActive) {
-      return (
-        <div className={styles.extensionButtonWrapper}>
-          <Button
-            disabled={!isActive}
-            variant='outlined'
-            style={{
-              minWidth: 1,
-              padding: 1,
-              width: '150px',
-              height: '50px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-            }}
-            onClick={() => handleParam(button, group)}
-          >
-            <FaArrowCircleRight style={{ fontSize: '2.3em' }} />
-          </Button>
-        </div>
-      )
-    }
-    return null
-  }
+  // Define stations separately:
+  const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
+  const footerStations = ['park', 'charge']
 
   return (
     <>
@@ -310,7 +190,7 @@ function Home() {
               fontWeight: 'bold',
             }}
             variant='outlined'
-            onClick={refreshPage}
+            onClick={() => window.location.reload()}
           >
             YENİLE
           </Button>
@@ -319,17 +199,13 @@ function Home() {
           className={styles.refreshButtonContainer}
           style={{ color: '#1976D2', fontSize: '17px', marginTop: '15px' }}
         >
-          {param.pick !== 'None' || param.drop !== 'None'
-            ? handleCurrentParam(param)
-            : ''}
+          {(pickStation || dropStation) && renderStationStatus()}
           <Button
             style={{ marginLeft: '10px', fontSize: '10px' }}
             variant='outlined'
-            onClick={() => handleNone(param)}
+            onClick={handleCancel}
           >
-            {param.pick === 'None' && param.drop === 'None'
-              ? 'Durdur'
-              : 'İptal Et'}
+            {pickStation || dropStation ? 'İptal Et' : 'Durdur'}
           </Button>
         </h1>
 
@@ -345,65 +221,125 @@ function Home() {
               </Button>
             )}
           </h2>
-          <Button onClick={checkConnection}>Bağlantı kontrolu</Button>
+          <Button onClick={() => {}}>Bağlantı kontrolu</Button>
         </div>
-        <div className={styles.mainButtons}>
-          <div className={styles.pickButtons}>
-            {['out1', 'out2', 'out3'].map((button, index) => (
-              <div key={index} className={styles.pickColumn}>
-                <Button
-                  style={{
-                    width: '150px',
-                    height: '50px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                  }}
-                  className={styles.pickButton}
-                  variant={pickPressed[button] ? 'contained' : 'outlined'}
-                  onClick={() => handlePickButtonClick(button)}
-                >
-                  {`Pick ${index + 1}`}
-                </Button>
-                {renderExtensionButton('pick', button)}
-              </div>
-            ))}
-          </div>
-          <div className={styles.dropButtons}>
-            {['out1', 'out2', 'out3'].map((button, index) => (
-              <div key={index} className={styles.pickColumn}>
-                <Button
-                  style={{
-                    width: '150px',
-                    height: '50px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                  }}
-                  className={styles.pickButton}
-                  variant={dropPressed[button] ? 'contained' : 'outlined'}
-                  onClick={() => handleDropButtonClick(button)}
-                >
-                  {`Drop ${index + 1}`}
-                </Button>
-                {renderExtensionButton('drop', button)}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={styles.footer}>
-          {['park', 'charge'].map((button, index) => (
-            <div key={index} className={styles.pickColumn}>
+
+        {/* Main station buttons */}
+        <div className={styles.stationContainer}>
+          {mainStations.map((station, index) => (
+            <div key={index} className={styles.stationButtonWrapper}>
               <Button
-                className={styles.footerButton}
-                variant={pickPressed[button] ? 'contained' : 'outlined'}
-                onClick={() => handlePickButtonClick(button)}
+                style={{
+                  width: '150px',
+                  height: '50px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                }}
+                variant={
+                  station === pickStation || station === dropStation
+                    ? 'contained'
+                    : 'outlined'
+                }
+                onClick={() => handleStationClick(station)}
               >
-                {button.charAt(0).toUpperCase() + button.slice(1)}
+                {`Station ${station.replace('out', '')}`}
               </Button>
-              {renderExtensionButton('pick', button)}
+              {activeStation === station && (
+                <div className={styles.extensionButtonWrapper}>
+                  <Button
+                    variant='outlined'
+                    style={{
+                      minWidth: 1,
+                      padding: 1,
+                      width: '70px',
+                      height: '50px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                    }}
+                    onClick={() => handleSelection(station, 'pick')}
+                  >
+                    <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                  </Button>
+                  <Button
+                    variant='outlined'
+                    style={{
+                      minWidth: 1,
+                      padding: 1,
+                      width: '70px',
+                      height: '50px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                    }}
+                    onClick={() => handleSelection(station, 'drop')}
+                  >
+                    <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        {/* Add this section below */}
+
+        {/* Footer for Park and Charge buttons */}
+        <div className={styles.footer}>
+          {footerStations.map((station, index) => (
+            <div key={index} className={styles.footerButtonContainer}>
+              <Button
+                style={{
+                  width: '150px',
+                  height: '50px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                }}
+                variant={
+                  station === pickStation || station === dropStation
+                    ? 'contained'
+                    : 'outlined'
+                }
+                onClick={() => handleStationClick(station)}
+              >
+                {station.charAt(0).toUpperCase() + station.slice(1)}
+              </Button>
+              {activeStation === station && (
+                <div className={styles.extensionButtonWrapper}>
+                  {/* For 'park', render only one button (pick) */}
+                  <Button
+                    variant='outlined'
+                    style={{
+                      minWidth: 1,
+                      padding: 1,
+                      width: '70px',
+                      height: '50px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                    }}
+                    onClick={() => handleSelection(station, 'pick')}
+                  >
+                    <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                  </Button>
+                  {/* Render drop button only if station is not "park" */}
+                  {station !== 'park' && (
+                    <Button
+                      variant='outlined'
+                      style={{
+                        minWidth: 1,
+                        padding: 1,
+                        width: '70px',
+                        height: '50px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                      }}
+                      onClick={() => handleSelection(station, 'drop')}
+                    >
+                      <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div className={styles.footerLogo}>
           <span style={{ fontSize: '12px', marginRight: '5px' }}>
             Powered by
@@ -411,20 +347,12 @@ function Home() {
           <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
         </div>
       </div>
-      {/* Use the extracted ChargingModal component */}
       <ChargingModal
         open={openChargeModal}
         onClose={() => setOpenChargeModal(false)}
         wsClient={wsClient}
         onSubmit={(param) => {
-          setParam({ pick: param, drop: '' })
-          setPickPressed({
-            out1: false,
-            out2: false,
-            out3: false,
-            park: false,
-            charge: true,
-          })
+          setPickStation('charge')
         }}
       />
     </>
