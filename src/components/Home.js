@@ -12,6 +12,7 @@ import logoImage from '../Epik.jpeg'
 function Home() {
   // Basic states
   const [battery, setBattery] = useState(0)
+  const [chargingStatus, setChargingStatus] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [autoCharged, setAutoCharged] = useState(false)
 
@@ -49,9 +50,10 @@ function Home() {
       }
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
-        console.log(!message.Robot)
+        console.log(message.Robot)
         if (message.Robot) {
           setBattery(message.Robot.battery_percentage || 0)
+          setChargingStatus(message.Robot.battery_status)
           // } else {
           // setBattery(0)
         }
@@ -214,7 +216,7 @@ function Home() {
           </Button>
         </h1>
 
-        <BatteryStatus level={battery} />
+        <BatteryStatus level={battery} chargingStatus={chargingStatus} />
         <ToastContainer />
         <div className={styles.container}>
           <h2 style={{ color: '#1976D2' }}>

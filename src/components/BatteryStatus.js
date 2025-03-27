@@ -1,6 +1,6 @@
 import React from 'react';
 
-const BatteryStatus = ({ level }) => {
+const BatteryStatus = ({ level, chargingStatus }) => {
   let batteryColor;
 
   // Determine battery color based on level
@@ -34,7 +34,7 @@ const BatteryStatus = ({ level }) => {
           justifyContent: 'center',
           fontWeight: 'bold',
           fontSize: '16px',
-          color: level < 30 ? 'red' : 'black', 
+          color: level < 30 ? 'red' : 'black',
         }}
       >
         <div
@@ -48,7 +48,9 @@ const BatteryStatus = ({ level }) => {
             zIndex: 1,
           }}
         ></div>
-        <span style={{ position: 'relative', zIndex: 2 }}>{level}%</span>
+        <span style={{ position: 'relative', zIndex: 2 }}>
+          {level}% {chargingStatus === 1 && '  ⚡︎'}
+        </span>
       </div>
     </div>
   );
