@@ -49,8 +49,12 @@ function Home() {
       }
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
-        console.log(message)
-        setBattery(message.Robot.battery_percentage || 0)
+        console.log(!message.Robot)
+        if (message.Robot) {
+          setBattery(message.Robot.battery_percentage || 0)
+          // } else {
+          // setBattery(0)
+        }
       }
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
@@ -58,6 +62,7 @@ function Home() {
       }
       ws.onclose = () => {
         console.log('WebSocket connection closed')
+        setBattery(0)
         toast.info('WebSocket connection closed', {
           position: 'top-center',
           autoClose: 300,
