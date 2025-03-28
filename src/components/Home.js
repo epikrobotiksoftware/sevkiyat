@@ -8,6 +8,7 @@ import Logo from './Logo'
 import ChargingModal from './ChargingModal'
 import styles from './home.module.css'
 import logoImage from '../Epik.jpeg'
+import MapImage from '../assets/map.png'
 
 function Home() {
   // Basic states
@@ -286,7 +287,10 @@ function Home() {
             </div>
           ))}
         </div>
-
+        {/* Responsive Map Image */}
+        <div className={styles.mapContainer}>
+          <img src={MapImage} alt='Station Map' className={styles.mapImage} />
+        </div>
         {/* Footer for Park and Charge buttons */}
         <div className={styles.footer}>
           {footerStations.map((station, index) => (
