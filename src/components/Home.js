@@ -186,8 +186,8 @@ function Home() {
   const footerStations = ['park', 'charge']
 
   return (
-    <>
-      <div>
+    <div className={styles.mainContainer}>
+      <div className={styles.contentWrapper}>
         <Logo />
         <div className={styles.refreshButtonContainer}>
           <Button
@@ -287,11 +287,13 @@ function Home() {
             </div>
           ))}
         </div>
-        {/* Responsive Map Image */}
+
+        {/* Map image */}
         <div className={styles.mapContainer}>
           <img src={MapImage} alt='Station Map' className={styles.mapImage} />
         </div>
-        {/* Footer for Park and Charge buttons */}
+
+        {/* Footer buttons */}
         <div className={styles.footer}>
           {footerStations.map((station, index) => (
             <div key={index} className={styles.footerButtonContainer}>
@@ -313,7 +315,6 @@ function Home() {
               </Button>
               {activeStation === station && (
                 <div className={styles.extensionButtonWrapper}>
-                  {/* For 'park', render only one button (pick) */}
                   <Button
                     variant='outlined'
                     style={{
@@ -328,7 +329,6 @@ function Home() {
                   >
                     <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
                   </Button>
-                  {/* Render drop button only if station is not "park" */}
                   {station !== 'park' && (
                     <Button
                       variant='outlined'
@@ -350,14 +350,15 @@ function Home() {
             </div>
           ))}
         </div>
-
-        <div className={styles.footerLogo}>
-          <span style={{ fontSize: '12px', marginRight: '5px' }}>
-            Powered by
-          </span>
-          <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
-        </div>
       </div>
+
+      {/* Footer Logo at the very bottom */}
+      <div className={styles.footerLogo}>
+        <span style={{ fontSize: '12px', marginRight: '5px' }}>Powered by</span>
+        <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
+      </div>
+
+      {/* Charging modal */}
       <ChargingModal
         open={openChargeModal}
         onClose={() => setOpenChargeModal(false)}
@@ -366,7 +367,7 @@ function Home() {
           setPickStation('charge')
         }}
       />
-    </>
+    </div>
   )
 }
 

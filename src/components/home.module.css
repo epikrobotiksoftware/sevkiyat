@@ -60,11 +60,13 @@
   font-weight: bold;
   margin: 0 10px;
 }
+/* Adjust footerLogo to stay at bottom */
 .footerLogo {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20%;
+  padding: 15px 0;
+  margin-top: auto; /* Push footer to bottom */
 }
 
 /* Existing styles... */
@@ -134,4 +136,16 @@
   .mapImage {
     width: 100%;
   }
+}
+
+
+/* Main container adjustments */
+.mainContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Full viewport height */
+}
+
+.contentWrapper {
+  flex: 1; /* Allow content to expand and push footer down */
 }
