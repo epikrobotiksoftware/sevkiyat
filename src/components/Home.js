@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Button from '@mui/material/Button'
@@ -16,6 +16,8 @@ function Home() {
   const [chargingStatus, setChargingStatus] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [autoCharged, setAutoCharged] = useState(false)
+  const reconnectInterval = useRef(1000) // Initial reconnect interval
+  const reconnectTimer = useRef(null)
 
   // Dynamic station selection states (we remove selectionStage)
   const [pickStation, setPickStation] = useState(null)
@@ -34,49 +36,56 @@ function Home() {
     connect()
     return () => {
       if (wsClient) wsClient.close()
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function connect() {
-    try {
-      const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
-      ws.onopen = () => {
-        console.log('Connected to WebSocket server!')
-        toast.success('Connected to WebSocket server!', {
-          position: 'top-center',
-          autoClose: 300,
-        })
-        setWsClient(ws)
+    const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
+
+    ws.onopen = () => {
+      console.log('Connected to WebSocket server!')
+      toast.success('Connected to WebSocket server!', {
+        position: 'top-center',
+        autoClose: 300,
+      })
+      setWsClient(ws)
+      reconnectInterval.current = 1000 // Reset interval upon successful connection
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+    }
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data)
+      if (message.Robot) {
+        setBattery(message.Robot.battery_percentage || 0)
+        setChargingStatus(message.Robot.battery_status)
       }
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data)
-        console.log(message.Robot)
-        if (message.Robot) {
-          setBattery(message.Robot.battery_percentage || 0)
-          setChargingStatus(message.Robot.battery_status)
-          // } else {
-          // setBattery(0)
-        }
-      }
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        toast.error('WebSocket error')
-      }
-      ws.onclose = () => {
-        console.log('WebSocket connection closed')
-        setBattery(0)
-        toast.info('WebSocket connection closed', {
-          position: 'top-center',
-          autoClose: 300,
-        })
-        setWsClient(null)
-      }
-    } catch (error) {
-      console.error(error)
+    }
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      toast.error('WebSocket error')
+    }
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed')
+      setBattery(0)
+      // toast.info('WebSocket connection closed, attempting to reconnect...', {
+      //   position: 'top-center',
+      //   autoClose: 1000,
+      // })
+      setWsClient(null)
+      attemptReconnect()
     }
   }
-
+  function attemptReconnect() {
+    reconnectTimer.current = setTimeout(() => {
+      console.log('Attempting to reconnect...')
+      connect()
+      reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000) // max 30 sec
+    }, reconnectInterval.current)
+  }
   // Auto-charge if battery is low
   useEffect(() => {
     if (battery < 20 && battery > 1 && !autoCharged) {
