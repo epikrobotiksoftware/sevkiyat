@@ -10,6 +10,8 @@ import styles from './home.module.css'
 import logoImage from '../Epik.jpeg'
 import MapImage from '../assets/map.png'
 import Joystick from './Joystick'
+import { BsJoystick } from 'react-icons/bs'
+import { PiProhibit } from 'react-icons/pi'
 
 function Home() {
   // Basic states
@@ -112,11 +114,11 @@ function Home() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       let message = {}
       if (group === 'drop') {
-        message = { type:'param', '/drop_selection': station }
+        message = { type: 'param', '/drop_selection': station }
       } else if (group === 'pick') {
-        message = { type:'param', '/pick_selection': station }
+        message = { type: 'param', '/pick_selection': station }
       } else if (group === 'None') {
-        const message1 = { type: 'param',  '/pick_selection': station }
+        const message1 = { type: 'param', '/pick_selection': station }
         const message2 = { type: 'param', '/drop_selection': station }
         const message3 = { type: 'param', '/navigation_cancel': 'stop' }
         wsClient.send(JSON.stringify(message1))
@@ -218,7 +220,11 @@ function Home() {
             variant='outlined'
             onClick={() => setJoystickEnabled((prev) => !prev)}
           >
-            {joystickEnabled ? 'Disable Joystick' : 'Enable Joystick'}
+            {joystickEnabled ? (
+              <PiProhibit size={25} color='red' />
+            ) : (
+              <BsJoystick size={25} />
+            )}
           </Button>
         </div>
         <h1

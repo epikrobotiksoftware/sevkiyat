@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { RiDragMove2Line } from 'react-icons/ri'
 
 const Joystick = ({ wsClient }) => {
   // State to track the joystick handle position relative to its center.
@@ -199,13 +200,13 @@ const Joystick = ({ wsClient }) => {
           userSelect: 'none',
         }}
       >
-        Drag Joystick
+        <RiDragMove2Line size={30} />
       </div>
       <div
         ref={joystickRef}
         style={{
-          width: 120,
-          height: 120,
+          width: 200,
+          height: 200,
           background: '#ccc',
           borderRadius: '50%',
           position: 'relative',
@@ -219,13 +220,13 @@ const Joystick = ({ wsClient }) => {
       >
         <div
           style={{
-            width: 50,
-            height: 50,
+            width: 80,
+            height: 80,
             background: '#888',
             borderRadius: '50%',
             position: 'absolute',
-            top: `calc(50% - 25px + ${position.y}px)`,
-            left: `calc(50% - 25px + ${position.x}px)`,
+            top: `calc(50% - 40px + ${position.y}px)`,
+            left: `calc(50% - 40px + ${position.x}px)`,
             transition: isDragging ? 'none' : 'top 0.1s, left 0.1s',
           }}
         />
