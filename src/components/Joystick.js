@@ -4,10 +4,10 @@ const Joystick = ({ wsClient }) => {
   // State to track the joystick handle position relative to its center.
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const joystickRef = useRef(null)
-  // Replace the dragging ref with state for continuous command transmission.
+  // State for continuous command transmission.
   const [isDragging, setIsDragging] = useState(false)
 
-  // Container dragging states (for moving the whole joystick around)
+  // Container dragging states for moving the whole joystick.
   const [containerPos, setContainerPos] = useState({ x: 100, y: 100 })
   const containerDragging = useRef(false)
   const dragStartPos = useRef({ x: 0, y: 0 })
@@ -38,7 +38,7 @@ const Joystick = ({ wsClient }) => {
       offsetY = maxDistance * Math.sin(angle)
     }
     setPosition({ x: offsetX, y: offsetY })
-    // We still send command immediately on update (in case of a quick movement)
+    // Immediately send the command on update.
     const linear = -offsetY / maxDistance
     const angular = offsetX / maxDistance
     sendCommand(linear, angular)
@@ -46,7 +46,7 @@ const Joystick = ({ wsClient }) => {
 
   // Joystick handle mouse events.
   const handleMouseDown = (e) => {
-    e.stopPropagation() // Prevent triggering container drag.
+    e.stopPropagation() // Prevent container drag triggering.
     setIsDragging(true)
     updatePosition(e.clientX, e.clientY)
   }
@@ -65,6 +65,7 @@ const Joystick = ({ wsClient }) => {
     }
   }
 
+  // Joystick handle touch events.
   const handleTouchStart = (e) => {
     e.stopPropagation()
     setIsDragging(true)
@@ -96,14 +97,14 @@ const Joystick = ({ wsClient }) => {
         const linear = -position.y / maxDistance
         const angular = position.x / maxDistance
         sendCommand(linear, angular)
-      }, 100) // Send command every 100ms; adjust as needed.
+      }, 100) // Send command every 100ms.
     }
     return () => {
       if (intervalId) clearInterval(intervalId)
     }
   }, [isDragging, position, wsClient])
 
-  // Add event listeners for mouse move and up (for joystick handle).
+  // Global event listeners for mouse events.
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
@@ -113,7 +114,7 @@ const Joystick = ({ wsClient }) => {
     }
   }, [isDragging, wsClient])
 
-  // Container drag event handlers.
+  // Container drag event handlers for mouse.
   const handleContainerMouseDown = (e) => {
     containerDragging.current = true
     dragStartPos.current = { x: e.clientX, y: e.clientY }
@@ -134,12 +135,46 @@ const Joystick = ({ wsClient }) => {
     containerDragging.current = false
   }
 
+  // Container drag event handlers for touch.
+  const handleContainerTouchStart = (e) => {
+    containerDragging.current = true
+    const touch = e.touches[0]
+    dragStartPos.current = { x: touch.clientX, y: touch.clientY }
+    containerStartPos.current = { ...containerPos }
+  }
+
+  const handleContainerTouchMove = (e) => {
+    if (!containerDragging.current) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - dragStartPos.current.x
+    const dy = touch.clientY - dragStartPos.current.y
+    setContainerPos({
+      x: containerStartPos.current.x + dx,
+      y: containerStartPos.current.y + dy,
+    })
+  }
+
+  const handleContainerTouchEnd = () => {
+    containerDragging.current = false
+  }
+
+  // Global listeners for container drag (mouse).
   useEffect(() => {
     window.addEventListener('mousemove', handleContainerMouseMove)
     window.addEventListener('mouseup', handleContainerMouseUp)
     return () => {
       window.removeEventListener('mousemove', handleContainerMouseMove)
       window.removeEventListener('mouseup', handleContainerMouseUp)
+    }
+  }, [containerPos])
+
+  // Global listeners for container drag (touch).
+  useEffect(() => {
+    window.addEventListener('touchmove', handleContainerTouchMove)
+    window.addEventListener('touchend', handleContainerTouchEnd)
+    return () => {
+      window.removeEventListener('touchmove', handleContainerTouchMove)
+      window.removeEventListener('touchend', handleContainerTouchEnd)
     }
   }, [containerPos])
 
@@ -155,6 +190,7 @@ const Joystick = ({ wsClient }) => {
       {/* Drag handle for the entire joystick */}
       <div
         onMouseDown={handleContainerMouseDown}
+        onTouchStart={handleContainerTouchStart}
         style={{
           background: '#aaa',
           padding: '5px',
