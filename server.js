@@ -26,6 +26,8 @@ wss.on('connection', (ws, req) => {
 
   ws.on('message', (message) => {
     const parsedData = JSON.parse(message)
+    console.log(parsedData)
+
     if (parsedData.Map) {
       // console.log('Map:', parsedData.Map)
       createMapImage(parsedData.Map)
@@ -65,5 +67,3 @@ const port = 8701
 server.listen(port, () => {
   console.log(`WebSocket server is running on ws://localhost:${port}`)
 })
-
-

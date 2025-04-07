@@ -9,6 +9,7 @@ import ChargingModal from './ChargingModal'
 import styles from './home.module.css'
 import logoImage from '../Epik.jpeg'
 import MapImage from '../assets/map.png'
+import Joystick from './Joystick'
 
 function Home() {
   // Basic states
@@ -19,14 +20,16 @@ function Home() {
   const reconnectInterval = useRef(1000) // Initial reconnect interval
   const reconnectTimer = useRef(null)
 
-  // Dynamic station selection states (we remove selectionStage)
+  // Dynamic station selection states
   const [pickStation, setPickStation] = useState(null)
   const [dropStation, setDropStation] = useState(null)
-  // activeStation: the station for which the extension options are shown
   const [activeStation, setActiveStation] = useState(null)
 
-  // State for the charging modal (if needed)
+  // Charging modal state
   const [openChargeModal, setOpenChargeModal] = useState(false)
+
+  // Joystick enabled state
+  const [joystickEnabled, setJoystickEnabled] = useState(false)
 
   // WebSocket server details
   const WS_SERVER_IP = process.env.REACT_APP_SERVER
@@ -71,14 +74,11 @@ function Home() {
     ws.onclose = () => {
       console.log('WebSocket connection closed')
       setBattery(0)
-      // toast.info('WebSocket connection closed, attempting to reconnect...', {
-      //   position: 'top-center',
-      //   autoClose: 1000,
-      // })
       setWsClient(null)
       attemptReconnect()
     }
   }
+
   function attemptReconnect() {
     reconnectTimer.current = setTimeout(() => {
       console.log('Attempting to reconnect...')
@@ -86,6 +86,7 @@ function Home() {
       reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000) // max 30 sec
     }, reconnectInterval.current)
   }
+
   // Auto-charge if battery is low
   useEffect(() => {
     if (battery < 20 && battery > 1 && !autoCharged) {
@@ -94,8 +95,8 @@ function Home() {
         'Battery level is too low, going to charging automatically...'
       )
       setPickStation('charge')
-      const message1 = { '/ChargePercentageSelection': 100 }
-      const message2 = { '/ChargeMinuteSelection': 'None' }
+      const message1 = { type: 'param', '/ChargePercentageSelection': 100 }
+      const message2 = { type: 'param', '/ChargeMinuteSelection': 'None' }
       wsClient.send(JSON.stringify(message1))
       wsClient.send(JSON.stringify(message2))
       handleParam('charge', 'pick')
@@ -111,13 +112,13 @@ function Home() {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       let message = {}
       if (group === 'drop') {
-        message = { '/drop_selection': station }
+        message = { type:'param', '/drop_selection': station }
       } else if (group === 'pick') {
-        message = { '/pick_selection': station }
+        message = { type:'param', '/pick_selection': station }
       } else if (group === 'None') {
-        const message1 = { '/pick_selection': station }
-        const message2 = { '/drop_selection': station }
-        const message3 = { '/navigation_cancel': 'stop' }
+        const message1 = { type: 'param',  '/pick_selection': station }
+        const message2 = { type: 'param', '/drop_selection': station }
+        const message3 = { type: 'param', '/navigation_cancel': 'stop' }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
         wsClient.send(JSON.stringify(message3))
@@ -133,12 +134,10 @@ function Home() {
 
   // Handle a station button click – shows extension options
   const handleStationClick = (station) => {
-    // For "charge", open the modal if needed
     if (station === 'charge') {
       setOpenChargeModal(true)
       return
     }
-    // Check battery level before allowing selection
     if (battery > 1 && battery < 20 && station !== 'charge') {
       toast.error('Battery level is too low, Robot is going to charging...')
       setPickStation('charge')
@@ -149,10 +148,8 @@ function Home() {
   }
 
   // When user selects an action (pick or drop) for the active station
-  // Now, these actions update the state immediately regardless of prior state.
   const handleSelection = (station, action) => {
     if (action === 'pick') {
-      // Ensure pick and drop are not the same
       if (dropStation && station === dropStation) {
         toast.error('Pick and drop stations cannot be the same.')
         return
@@ -167,7 +164,6 @@ function Home() {
       setDropStation(station)
       handleParam(station, 'drop')
     }
-    // Hide the extension options after a selection
     setActiveStation(null)
   }
 
@@ -179,7 +175,7 @@ function Home() {
     handleParam('None', 'None')
   }
 
-  // Display the current selection state based solely on pickStation and dropStation
+  // Display the current selection state
   const renderStationStatus = () => {
     if (!pickStation) {
       return 'Awaiting pick station selection'
@@ -190,7 +186,7 @@ function Home() {
     }
   }
 
-  // Define stations separately:
+  // Define stations
   const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
   const footerStations = ['park', 'charge']
 
@@ -211,6 +207,19 @@ function Home() {
           >
             YENİLE
           </Button>
+          <Button
+            style={{
+              width: '150px',
+              height: '50px',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              marginLeft: '10px',
+            }}
+            variant='outlined'
+            onClick={() => setJoystickEnabled((prev) => !prev)}
+          >
+            {joystickEnabled ? 'Disable Joystick' : 'Enable Joystick'}
+          </Button>
         </div>
         <h1
           className={styles.refreshButtonContainer}
@@ -225,7 +234,6 @@ function Home() {
             {pickStation || dropStation ? 'İptal Et' : 'Durdur'}
           </Button>
         </h1>
-
         <BatteryStatus level={battery} chargingStatus={chargingStatus} />
         <ToastContainer />
         <div className={styles.container}>
@@ -240,7 +248,6 @@ function Home() {
           </h2>
           <Button onClick={() => {}}>Bağlantı kontrolu</Button>
         </div>
-
         {/* Main station buttons */}
         <div className={styles.stationContainer}>
           {mainStations.map((station, index) => (
@@ -296,12 +303,10 @@ function Home() {
             </div>
           ))}
         </div>
-
         {/* Map image */}
         <div className={styles.mapContainer}>
           <img src={MapImage} alt='Station Map' className={styles.mapImage} />
         </div>
-
         {/* Footer buttons */}
         <div className={styles.footer}>
           {footerStations.map((station, index) => (
@@ -361,7 +366,7 @@ function Home() {
         </div>
       </div>
 
-      {/* Footer Logo at the very bottom */}
+      {/* Footer Logo */}
       <div className={styles.footerLogo}>
         <span style={{ fontSize: '12px', marginRight: '5px' }}>Powered by</span>
         <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
@@ -376,6 +381,9 @@ function Home() {
           setPickStation('charge')
         }}
       />
+
+      {/* Conditionally render the joystick when enabled */}
+      {joystickEnabled && <Joystick wsClient={wsClient} />}
     </div>
   )
 }

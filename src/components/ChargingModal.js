@@ -35,17 +35,17 @@ const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
     }
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       if (chargeMode === 'percentage') {
-        const message1 = { '/ChargePercentageSelection': chargeValue }
-        const message2 = { '/ChargeMinuteSelection': 'None' }
+        const message1 = { type: 'param', '/ChargePercentageSelection': chargeValue }
+        const message2 = { type: 'param', '/ChargeMinuteSelection': 'None' }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
       } else if (chargeMode === 'time') {
-        const message1 = { '/ChargeMinuteSelection': chargeValue }
-        const message2 = { '/ChargePercentageSelection': 'None' }
+        const message1 = { type: 'param', '/ChargeMinuteSelection': chargeValue }
+        const message2 = { type: 'param', '/ChargePercentageSelection': 'None' }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
       }
-      const message = { '/pick_selection': 'charge' }
+      const message = { type: 'param', '/pick_selection': 'charge' }
       wsClient.send(JSON.stringify(message))
       if (onSubmit) {
         onSubmit(`Charge (${chargeMode}: ${chargeValue})`)
