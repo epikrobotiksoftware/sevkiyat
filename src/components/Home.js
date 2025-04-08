@@ -22,7 +22,7 @@ function Home() {
   const [chargingStatus, setChargingStatus] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [autoCharged, setAutoCharged] = useState(false)
-  const reconnectInterval = useRef(1000) // Initial reconnect interval
+  const reconnectInterval = useRef(1000) // İlk yeniden bağlanma süresi
   const reconnectTimer = useRef(null)
 
   // Dynamic station selection states
@@ -40,6 +40,21 @@ function Home() {
   const WS_SERVER_IP = process.env.REACT_APP_SERVER
   const WS_SERVER_PORT = '8701'
 
+  // Helper: transforms internal station codes to user-facing names.
+  // For main stations, "out[number]" becomes "İstasyon [number]".
+  // For footer stations, "charge" becomes "Şarj" and "park" becomes "Park".
+  const getDisplayName = (station) => {
+    if (!station) return ''
+    if (station.startsWith('out')) {
+      return `İstasyon ${station.replace('out', '')}`
+    } else if (station === 'charge') {
+      return 'Şarj'
+    } else if (station === 'park') {
+      return 'Park'
+    }
+    return station
+  }
+
   useEffect(() => {
     connect()
     return () => {
@@ -53,13 +68,13 @@ function Home() {
     const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
 
     ws.onopen = () => {
-      console.log('Connected to WebSocket server!')
-      toast.success('Connected to WebSocket server!', {
+      console.log('WebSocket sunucusuna bağlandı!')
+      toast.success('WebSocket sunucusuna bağlandı!', {
         position: 'top-center',
         autoClose: 300,
       })
       setWsClient(ws)
-      reconnectInterval.current = 1000 // Reset interval upon successful connection
+      reconnectInterval.current = 1000 // Başarılı bağlantıda süreyi sıfırla
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
     }
 
@@ -72,12 +87,12 @@ function Home() {
     }
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      toast.error('WebSocket error')
+      console.error('WebSocket hatası:', error)
+      toast.error('WebSocket hatası')
     }
 
     ws.onclose = () => {
-      console.log('WebSocket connection closed')
+      console.log('WebSocket bağlantısı kesildi')
       setBattery(0)
       setWsClient(null)
       attemptReconnect()
@@ -86,19 +101,17 @@ function Home() {
 
   function attemptReconnect() {
     reconnectTimer.current = setTimeout(() => {
-      console.log('Attempting to reconnect...')
+      console.log('Yeniden bağlanılıyor...')
       connect()
-      reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000) // max 30 sec
+      reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000) // Maksimum 30 sn
     }, reconnectInterval.current)
   }
 
-  // Auto-charge if battery is low
+  // Pil seviyesi düşükse otomatik şarj
   useEffect(() => {
     if (battery < 20 && battery > 1 && !autoCharged) {
-      console.log('Battery < 20%, auto-charging now...')
-      toast.error(
-        'Battery level is too low, going to charging automatically...'
-      )
+      console.log('Pil %20’nin altında, otomatik şarj başlatılıyor...')
+      toast.error('Pil seviyesi çok düşük, otomatik şarj moduna geçiliyor...')
       setPickStation('charge')
       const message1 = { type: 'param', '/ChargePercentageSelection': 100 }
       const message2 = { type: 'param', '/ChargeMinuteSelection': 'None' }
@@ -112,7 +125,7 @@ function Home() {
     }
   }, [battery, autoCharged, wsClient])
 
-  // Send appropriate WebSocket message for pick/drop/cancellation
+  // WebSocket mesajı gönderme (alım, bırak, iptal)
   const handleParam = (station, group) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       let message = {}
@@ -132,19 +145,19 @@ function Home() {
       console.log(JSON.stringify(message))
       wsClient.send(JSON.stringify(message))
     } else {
-      console.error('WebSocket not connected')
-      toast.error('WebSocket not connected')
+      console.error('WebSocket bağlı değil')
+      toast.error('WebSocket bağlı değil')
     }
   }
 
-  // Handle a station button click – shows extension options
+  // İstasyon butonuna tıklama – ek seçenekleri gösterir
   const handleStationClick = (station) => {
     if (station === 'charge') {
       setOpenChargeModal(true)
       return
     }
     if (battery > 1 && battery < 20 && station !== 'charge') {
-      toast.error('Battery level is too low, Robot is going to charging...')
+      toast.error('Pil seviyesi çok düşük, robot şarj moduna geçiyor...')
       setPickStation('charge')
       handleParam('charge', 'pick')
       return
@@ -152,18 +165,18 @@ function Home() {
     setActiveStation(station)
   }
 
-  // When user selects an action (pick or drop) for the active station
+  // Aktif istasyon için kullanıcının yaptığı seçim (alım veya bırak)
   const handleSelection = (station, action) => {
     if (action === 'pick') {
       if (dropStation && station === dropStation) {
-        toast.error('Pick and drop stations cannot be the same.')
+        toast.error('Al ve bırak istasyonları aynı olamaz.')
         return
       }
       setPickStation(station)
       handleParam(station, 'pick')
     } else if (action === 'drop') {
       if (pickStation && station === pickStation) {
-        toast.error('Pick and drop stations cannot be the same.')
+        toast.error('Al ve bırak istasyonları aynı olamaz.')
         return
       }
       setDropStation(station)
@@ -172,7 +185,7 @@ function Home() {
     setActiveStation(null)
   }
 
-  // Reset selection (cancel)
+  // Seçimi sıfırlama (iptal)
   const handleCancel = () => {
     setPickStation(null)
     setDropStation(null)
@@ -180,22 +193,26 @@ function Home() {
     handleParam('None', 'None')
   }
 
-  // Display the current selection state
+  // Seçim durumunu gösterir
   const renderStationStatus = () => {
     if (!pickStation) {
-      return 'Awaiting pick station selection'
+      return 'Alım istasyonu seçimi bekleniyor'
     } else if (!dropStation) {
-      return `Pick: ${pickStation} → Awaiting drop station selection`
+      return `Al: ${getDisplayName(
+        pickStation
+      )} → Bırakma istasyonu seçimi bekleniyor`
     } else {
-      return `Pick: ${pickStation} → Drop: ${dropStation}`
+      return `Al: ${getDisplayName(pickStation)} → Bırak: ${getDisplayName(
+        dropStation
+      )}`
     }
   }
-  // const handleJoystickExit = () => {
-  //   setJoystickEnabled(false)
-  // }
 
-  // Define stations
+  // İstasyonlar:
+  // Main station values remain "out1", "out2", etc. for sending to WebSocket.
+  // They will be displayed as İstasyon 1, İstasyon 2...
   const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
+  // Footer stations are "park" and "charge"
   const footerStations = ['park', 'charge']
 
   return (
@@ -258,9 +275,9 @@ function Home() {
               </Button>
             )}
           </h2>
-          <Button onClick={() => {}}>Bağlantı kontrolu</Button>
+          <Button onClick={() => {}}>Bağlantı kontrolü</Button>
         </div>
-        {/* Main station buttons */}
+        {/* Ana istasyon butonları */}
         <div className={styles.stationContainer}>
           {mainStations.map((station, index) => (
             <div key={index} className={styles.stationButtonWrapper}>
@@ -278,7 +295,7 @@ function Home() {
                 }
                 onClick={() => handleStationClick(station)}
               >
-                {`Station ${station.replace('out', '')}`}
+                {getDisplayName(station)}
               </Button>
               {activeStation === station && (
                 <div className={styles.extensionButtonWrapper}>
@@ -294,7 +311,16 @@ function Home() {
                     }}
                     onClick={() => handleSelection(station, 'pick')}
                   >
-                    <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                      <span style={{ fontSize: '10px' }}>AL</span>
+                    </div>
                   </Button>
                   <Button
                     variant='outlined'
@@ -308,18 +334,31 @@ function Home() {
                     }}
                     onClick={() => handleSelection(station, 'drop')}
                   >
-                    <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                      <span style={{ fontSize: '10px' }}>BIRAK</span>
+                    </div>
                   </Button>
                 </div>
               )}
             </div>
           ))}
         </div>
-        {/* Map image */}
+        {/* Harita resmi */}
         <div className={styles.mapContainer}>
-          <img src={MapImage} alt='Station Map' className={styles.mapImage} />
+          <img
+            src={MapImage}
+            alt='İstasyon Haritası'
+            className={styles.mapImage}
+          />
         </div>
-        {/* Footer buttons */}
+        {/* Alt kısım butonları */}
         <div className={styles.footer}>
           {footerStations.map((station, index) => (
             <div key={index} className={styles.footerButtonContainer}>
@@ -337,7 +376,7 @@ function Home() {
                 }
                 onClick={() => handleStationClick(station)}
               >
-                {station.charAt(0).toUpperCase() + station.slice(1)}
+                {getDisplayName(station)}
               </Button>
               {activeStation === station && (
                 <div className={styles.extensionButtonWrapper}>
@@ -353,7 +392,16 @@ function Home() {
                     }}
                     onClick={() => handleSelection(station, 'pick')}
                   >
-                    <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                      <span style={{ fontSize: '10px' }}>AL</span>
+                    </div>
                   </Button>
                   {station !== 'park' && (
                     <Button
@@ -368,7 +416,16 @@ function Home() {
                       }}
                       onClick={() => handleSelection(station, 'drop')}
                     >
-                      <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                        <span style={{ fontSize: '10px' }}>BIRAK</span>
+                      </div>
                     </Button>
                   )}
                 </div>
@@ -378,13 +435,15 @@ function Home() {
         </div>
       </div>
 
-      {/* Footer Logo */}
+      {/* Alt Logo */}
       <div className={styles.footerLogo}>
-        <span style={{ fontSize: '12px', marginRight: '5px' }}>Powered by</span>
+        <span style={{ fontSize: '12px', marginRight: '5px' }}>
+          Tarafından Destekleniyor
+        </span>
         <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
       </div>
 
-      {/* Charging modal */}
+      {/* Şarj Modal */}
       <ChargingModal
         open={openChargeModal}
         onClose={() => setOpenChargeModal(false)}
@@ -394,8 +453,7 @@ function Home() {
         }}
       />
 
-      {/* Conditionally render the joystick when enabled */}
-      {/* {joystickEnabled && <Joystick wsClient={wsClient} />} */}
+      {/* Joystick, etkinse render edilir */}
       {joystickEnabled &&
         (isMobile ? (
           <MobileJoystick
