@@ -12,6 +12,9 @@ import MapImage from '../assets/map.png'
 import Joystick from './Joystick'
 import { BsJoystick } from 'react-icons/bs'
 import { PiProhibit } from 'react-icons/pi'
+import { HiRefresh } from 'react-icons/hi'
+import { isMobile } from 'react-device-detect'
+import MobileJoystick from './MobileJoystick'
 
 function Home() {
   // Basic states
@@ -187,6 +190,9 @@ function Home() {
       return `Pick: ${pickStation} → Drop: ${dropStation}`
     }
   }
+  // const handleJoystickExit = () => {
+  //   setJoystickEnabled(false)
+  // }
 
   // Define stations
   const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
@@ -207,7 +213,7 @@ function Home() {
             variant='outlined'
             onClick={() => window.location.reload()}
           >
-            YENİLE
+            <HiRefresh size={25} />
           </Button>
           <Button
             style={{
@@ -389,7 +395,16 @@ function Home() {
       />
 
       {/* Conditionally render the joystick when enabled */}
-      {joystickEnabled && <Joystick wsClient={wsClient} />}
+      {/* {joystickEnabled && <Joystick wsClient={wsClient} />} */}
+      {joystickEnabled &&
+        (isMobile ? (
+          <MobileJoystick
+            wsClient={wsClient}
+            onExit={() => setJoystickEnabled(false)}
+          />
+        ) : (
+          <Joystick wsClient={wsClient} />
+        ))}
     </div>
   )
 }

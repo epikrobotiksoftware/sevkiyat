@@ -15,7 +15,7 @@ const Joystick = ({ wsClient }) => {
   const containerStartPos = useRef({ x: 0, y: 0 })
 
   // Maximum distance the joystick handle can move (in pixels).
-  const maxDistance = 50
+  const maxDistance = 60
 
   // Function to send control commands to the WebSocket server.
   const sendCommand = (linear, angular) => {

@@ -21,6 +21,7 @@ const BatteryStatus = ({ level, chargingStatus }) => {
         top: '10px',
         right: '10px',
         zIndex: '9999',
+        // pointerEvents: joystickEnabled ? 'none' : 'auto', // conditionally disable events
       }}
     >
       <div
@@ -53,7 +54,7 @@ const BatteryStatus = ({ level, chargingStatus }) => {
         </span>
       </div>
     </div>
-  );
+  )
 };
 
 export default BatteryStatus;
