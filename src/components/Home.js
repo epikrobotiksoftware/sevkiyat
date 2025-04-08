@@ -3,7 +3,11 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Button from '@mui/material/Button'
 import BatteryStatus from './BatteryStatus'
-import { FaArrowCircleUp, FaArrowCircleDown } from 'react-icons/fa'
+import {
+  FaArrowCircleUp,
+  FaArrowCircleDown,
+  FaArrowCircleRight,
+} from 'react-icons/fa'
 import Logo from './Logo'
 import ChargingModal from './ChargingModal'
 import styles from './home.module.css'
@@ -209,10 +213,10 @@ function Home() {
   }
 
   // İstasyonlar:
-  // Main station values remain "out1", "out2", etc. for sending to WebSocket.
-  // They will be displayed as İstasyon 1, İstasyon 2...
+  // Main station değerleri WebSocket ile gönderilmek üzere "out1", "out2", ... şeklinde.
+  // Ancak kullanıcıya "İstasyon 1", "İstasyon 2", ... olarak görünecek.
   const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
-  // Footer stations are "park" and "charge"
+  // Footer istasyonları, "park" ve "charge"
   const footerStations = ['park', 'charge']
 
   return (
@@ -380,30 +384,7 @@ function Home() {
               </Button>
               {activeStation === station && (
                 <div className={styles.extensionButtonWrapper}>
-                  <Button
-                    variant='outlined'
-                    style={{
-                      minWidth: 1,
-                      padding: 1,
-                      width: '70px',
-                      height: '50px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                    }}
-                    onClick={() => handleSelection(station, 'pick')}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
-                      <span style={{ fontSize: '10px' }}>AL</span>
-                    </div>
-                  </Button>
-                  {station !== 'park' && (
+                  {station === 'park' ? (
                     <Button
                       variant='outlined'
                       style={{
@@ -414,7 +395,7 @@ function Home() {
                         fontSize: '10px',
                         fontWeight: 'bold',
                       }}
-                      onClick={() => handleSelection(station, 'drop')}
+                      onClick={() => handleSelection(station, 'pick')}
                     >
                       <div
                         style={{
@@ -423,10 +404,59 @@ function Home() {
                           alignItems: 'center',
                         }}
                       >
-                        <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
-                        <span style={{ fontSize: '10px' }}>BIRAK</span>
+                        <FaArrowCircleRight style={{ fontSize: '2.3em' }} />
+                        <span style={{ fontSize: '10px' }}>Git</span>
                       </div>
                     </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant='outlined'
+                        style={{
+                          minWidth: 1,
+                          padding: 1,
+                          width: '70px',
+                          height: '50px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                        }}
+                        onClick={() => handleSelection(station, 'pick')}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <FaArrowCircleUp style={{ fontSize: '2.3em' }} />
+                          <span style={{ fontSize: '10px' }}>AL</span>
+                        </div>
+                      </Button>
+                      <Button
+                        variant='outlined'
+                        style={{
+                          minWidth: 1,
+                          padding: 1,
+                          width: '70px',
+                          height: '50px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                        }}
+                        onClick={() => handleSelection(station, 'drop')}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <FaArrowCircleDown style={{ fontSize: '2.3em' }} />
+                          <span style={{ fontSize: '10px' }}>BIRAK</span>
+                        </div>
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
@@ -437,7 +467,9 @@ function Home() {
 
       {/* Alt Logo */}
       <div className={styles.footerLogo}>
-        <span style={{ fontSize: '12px', marginRight: '5px' }}>Powered by</span>
+        <span style={{ fontSize: '12px', marginRight: '5px' }}>
+          Tarafından Destekleniyor
+        </span>
         <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
       </div>
 
