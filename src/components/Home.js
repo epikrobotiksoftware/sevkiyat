@@ -437,9 +437,7 @@ function Home() {
 
       {/* Alt Logo */}
       <div className={styles.footerLogo}>
-        <span style={{ fontSize: '12px', marginRight: '5px' }}>
-          Tarafından Destekleniyor
-        </span>
+        <span style={{ fontSize: '12px', marginRight: '5px' }}>Powered by</span>
         <img src={logoImage} alt='Logo' style={{ height: '30px' }} />
       </div>
 
