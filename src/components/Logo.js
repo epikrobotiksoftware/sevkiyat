@@ -1,7 +1,7 @@
 // Logo.js
 import React from 'react'
-// import logoImage from '../Epik.jpeg'
-import logoImage from '../profSentetik.svg'
+import logoImage from '../Epik.jpeg'
+// import logoImage from '../profSentetik.svg'
 
 function Logo() {
   const url = 'https://profsentetik.com/app/Images/logodark_1679312205.svg'
