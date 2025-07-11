@@ -369,9 +369,8 @@ function Home() {
           ))}
         </div>
         {/* Harita resmi */}
-          <MapCanvas src={mapSrc} />
-        {/* Alt kısım butonları */}
-        <div className={styles.footer}>
+                {/* Alt kısım butonları */}
+                <div className={styles.footer}>
           {footerStations.map((station, index) => (
             <div key={index} className={styles.footerButtonContainer}>
               <Button
@@ -471,6 +470,8 @@ function Home() {
             </div>
           ))}
         </div>
+          <MapCanvas src={mapSrc} />
+
       </div>
 
       {/* Alt Logo */}
