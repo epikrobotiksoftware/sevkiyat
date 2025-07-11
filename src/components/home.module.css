@@ -107,36 +107,43 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: auto;
 }
 
 
+/* container that fills remaining space (you can also use flex:1 in your layout) */
 .mapContainer {
+  position: relative;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
+  /* overscroll-behavior: contain; */
+  /* if this is the only thing between header & footer you can use flex:1 instead */
+  height: calc(100vh - 200px);  /* tweak 200px to be your header+controls+footer height */
+  overflow: hidden;
 }
 
-.mapImage {
-  width: 80%;
-  max-width: 1000px; /* Adjust as needed */
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+/* make the canvas fill the container */
+.mapCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;       /* removes inline gaps */
+  cursor: grab;
+  background: #f8f8f8;  /* small neutral background behind your map */
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .mapImage {
-    width: 95%;
-  }
+/* optional: active grab cursor when dragging */
+.mapCanvas:active {
+  cursor: grabbing;
 }
 
-@media (max-width: 480px) {
-  .mapImage {
-    width: 100%;
-  }
+/* position your rotate button if you need it on top */
+.mapRotateBtn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
 }
+
+      
 
 
 /* Main container adjustments */

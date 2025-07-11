@@ -20,7 +20,7 @@ sudo cp -r build/* /var/www/html/
 echo "Restarting Apache2..."
 sudo systemctl restart apache2
 echo "Restarting backend using pm2 ..."
-pm2 restart server.js
+pm2 restart backend
 
 
 echo "Deployment complete!"

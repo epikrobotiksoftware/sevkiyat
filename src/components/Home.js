@@ -12,27 +12,33 @@ import Logo from './Logo'
 import ChargingModal from './ChargingModal'
 import styles from './home.module.css'
 import logoImage from '../Epik.jpeg'
-import MapImage from '../assets/map.png'
 import Joystick from './Joystick'
 import { BsJoystick } from 'react-icons/bs'
 import { PiProhibit } from 'react-icons/pi'
 import { HiRefresh } from 'react-icons/hi'
 import { isMobile } from 'react-device-detect'
 import MobileJoystick from './MobileJoystick'
+import MapCanvas from './MapCanvas'
 
 function Home() {
   // Basic states
+  // const SERVER =  process.env.REACT_APP_SERVER +':'+ process.env.REACT_APP_PORT
+  const SERVER =  `http://${process.env.REACT_APP_SERVER}:8701`
+  console.log(SERVER);
+  
   const [battery, setBattery] = useState(0)
   const [chargingStatus, setChargingStatus] = useState(0)
   const [wsClient, setWsClient] = useState(null)
   const [autoCharged, setAutoCharged] = useState(false)
   const reconnectInterval = useRef(1000) // İlk yeniden bağlanma süresi
   const reconnectTimer = useRef(null)
+  const [rotation, setRotation] = useState(0)
 
   // Dynamic station selection states
   const [pickStation, setPickStation] = useState(null)
   const [dropStation, setDropStation] = useState(null)
   const [activeStation, setActiveStation] = useState(null)
+  const [mapSrc, setMapSrc] = useState(`${SERVER}/map.png`)
 
   // Charging modal state
   const [openChargeModal, setOpenChargeModal] = useState(false)
@@ -88,6 +94,9 @@ function Home() {
         setBattery(message.Robot.battery_percentage || 0)
         setChargingStatus(message.Robot.battery_status)
       }
+      if (message.type === 'map-updated') {
+        setMapSrc(`${SERVER}/map.png?ts=${message.ts}`)
+      }
     }
 
     ws.onerror = (error) => {
@@ -102,6 +111,11 @@ function Home() {
       attemptReconnect()
     }
   }
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360)
+  }
+
 
   function attemptReconnect() {
     reconnectTimer.current = setTimeout(() => {
@@ -355,13 +369,7 @@ function Home() {
           ))}
         </div>
         {/* Harita resmi */}
-        <div className={styles.mapContainer}>
-          <img
-            src={MapImage}
-            alt='İstasyon Haritası'
-            className={styles.mapImage}
-          />
-        </div>
+          <MapCanvas src={mapSrc} />
         {/* Alt kısım butonları */}
         <div className={styles.footer}>
           {footerStations.map((station, index) => (
