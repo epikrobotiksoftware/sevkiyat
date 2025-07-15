@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Button from '@mui/material/Button'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import BatteryStatus from './BatteryStatus'
 import {
   FaArrowCircleUp,
@@ -24,7 +26,9 @@ function Home() {
   // Basic states
   // const SERVER =  process.env.REACT_APP_SERVER +':'+ process.env.REACT_APP_PORT
   const SERVER =  `http://${process.env.REACT_APP_SERVER}:8701`
-  console.log(SERVER);
+  const [robotsList, setRobotsList] = useState([])           // all robots from WS
+  const [selectedRobot, setSelectedRobot] = useState(null)   // the one the user picks
+  const [anchorElRobot, setAnchorElRobot] = useState(null)   // for MUI menu
   
   const [battery, setBattery] = useState(0)
   const [chargingStatus, setChargingStatus] = useState(0)
@@ -65,117 +69,126 @@ function Home() {
     return station
   }
 
+  const handleRobotMenuOpen = (e) => setAnchorElRobot(e.currentTarget)
+  const handleRobotMenuClose = () => setAnchorElRobot(null)
+  const handleRobotSelect = (name) => {
+    setSelectedRobot(name)
+    setAnchorElRobot(null)
+  }
+
+  useEffect(() => {
+    if (!selectedRobot && robotsList.length > 0) {
+      setSelectedRobot(null)
+    }
+    const sel = robotsList.find(r => r.Name === selectedRobot)
+    if (sel) {
+      setBattery(sel.battery_percentage || 0)
+      setChargingStatus(sel.battery_status)
+    }
+  }, [robotsList, selectedRobot])
+
   useEffect(() => {
     connect()
     return () => {
-      if (wsClient) wsClient.close()
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      wsClient?.close()
+      reconnectTimer.current && clearTimeout(reconnectTimer.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function connect() {
     const ws = new WebSocket(`ws://${WS_SERVER_IP}:${WS_SERVER_PORT}/react`)
-
     ws.onopen = () => {
-      console.log('WebSocket sunucusuna bağlandı!')
-      toast.success('WebSocket sunucusuna bağlandı!', {
-        position: 'top-center',
-        autoClose: 300,
-      })
+      console.log('WebSocket connected')
+      toast.success('WebSocket’e bağlandı!', { position: 'top-center', autoClose: 300 })
       setWsClient(ws)
-      reconnectInterval.current = 1000 // Başarılı bağlantıda süreyi sıfırla
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      reconnectInterval.current = 1000
+      reconnectTimer.current && clearTimeout(reconnectTimer.current)
     }
+    ws.onmessage = ({ data }) => {
+      const msg = JSON.parse(data)
+      // console.log(msg);
+      
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.Robot) {
-        setBattery(message.Robot.battery_percentage || 0)
-        setChargingStatus(message.Robot.battery_status)
-      }
-      if (message.type === 'map-updated') {
-        setMapSrc(`${SERVER}/map.png?ts=${message.ts}`)
+      switch (msg.type) {
+        case 'robots':
+          // Deduped list comes in msg.payload
+          setRobotsList(msg.payload)
+          break
+
+        case 'map-updated':
+          setMapSrc(`${SERVER}/map.png?ts=${msg.ts}`)
+          break
+
+        default:
+          console.warn('Unhandled WS message:', msg)
       }
     }
-
-    ws.onerror = (error) => {
-      console.error('WebSocket hatası:', error)
+    ws.onerror = (err) => {
+      console.error('WebSocket error', err)
       toast.error('WebSocket hatası')
     }
-
     ws.onclose = () => {
-      console.log('WebSocket bağlantısı kesildi')
-      setBattery(0)
+      console.log('WebSocket disconnected')
       setWsClient(null)
+      setBattery(0)
       attemptReconnect()
     }
   }
 
-  const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360)
-  }
 
 
   function attemptReconnect() {
     reconnectTimer.current = setTimeout(() => {
-      console.log('Yeniden bağlanılıyor...')
+      console.log('Reconnecting…')
       connect()
-      reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000) // Maksimum 30 sn
+      reconnectInterval.current = Math.min(reconnectInterval.current * 2, 30000)
     }, reconnectInterval.current)
   }
 
   // Pil seviyesi düşükse otomatik şarj
   useEffect(() => {
+    if (!selectedRobot || !wsClient) return
     if (battery < 20 && battery > 1 && !autoCharged) {
-      console.log('Pil %20’nin altında, otomatik şarj başlatılıyor...')
-      toast.error('Pil seviyesi çok düşük, otomatik şarj moduna geçiliyor...')
+      toast.error('Pil çok düşük, otomatik şarj moduna geçiliyor…')
       setPickStation('charge')
-      const message1 = { type: 'param', '/ChargePercentageSelection': 100 }
-      const message2 = { type: 'param', '/ChargeMinuteSelection': 'None' }
-      wsClient.send(JSON.stringify(message1))
-      wsClient.send(JSON.stringify(message2))
-      handleParam('charge', 'pick')
+      const msg1 = { type: 'param', '/ChargePercentageSelection': 100, robotName: selectedRobot }
+      const msg2 = { type: 'param', '/ChargeMinuteSelection': 'None',   robotName: selectedRobot }
+      wsClient.send(JSON.stringify(msg1))
+      wsClient.send(JSON.stringify(msg2))
       setAutoCharged(true)
     }
     if (battery >= 20 && autoCharged) {
       setAutoCharged(false)
     }
-  }, [battery, autoCharged, wsClient])
+  }, [battery, autoCharged, wsClient, selectedRobot])
 
   // WebSocket mesajı gönderme (alım, bırak, iptal)
   const handleParam = (station, group) => {
-    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      let message = {}
-      if (group === 'drop') {
-        message = { type: 'param', '/drop_selection': station }
-      } else if (group === 'pick') {
-        message = { type: 'param', '/pick_selection': station }
-      } else if (group === 'None') {
-        const message1 = { type: 'param', '/pick_selection': station }
-        const message2 = { type: 'param', '/drop_selection': station }
-        const message3 = { type: 'param', '/navigation_cancel': 'stop' }
-        wsClient.send(JSON.stringify(message1))
-        wsClient.send(JSON.stringify(message2))
-        wsClient.send(JSON.stringify(message3))
-        return
-      }
-      console.log(JSON.stringify(message))
-      wsClient.send(JSON.stringify(message))
-    } else {
-      console.error('WebSocket bağlı değil')
+    if (!wsClient || wsClient.readyState !== WebSocket.OPEN) {
       toast.error('WebSocket bağlı değil')
+      return
     }
+    let msgs = []
+    if (group === 'pick') {
+      msgs.push({ type: 'param', '/pick_selection': station, robotName: selectedRobot })
+    } else if (group === 'drop') {
+      msgs.push({ type: 'param', '/drop_selection': station, robotName: selectedRobot })
+    } else if (group === 'None') {
+      msgs.push(
+        { type: 'param', '/pick_selection': station,       robotName: selectedRobot },
+        { type: 'param', '/drop_selection': station,       robotName: selectedRobot },
+        { type: 'param', '/navigation_cancel': 'stop',     robotName: selectedRobot }
+      )
+    }
+    msgs.forEach(m => wsClient.send(JSON.stringify(m)))
   }
 
   // İstasyon butonuna tıklama – ek seçenekleri gösterir
   const handleStationClick = (station) => {
-    if (station === 'charge') {
-      setOpenChargeModal(true)
-      return
-    }
-    if (battery > 1 && battery < 20 && station !== 'charge') {
-      toast.error('Pil seviyesi çok düşük, robot şarj moduna geçiyor...')
+    if (station === 'charge') { setOpenChargeModal(true); return }
+    if (battery < 20 && station !== 'charge') {
+      toast.error('Pil çok düşük, şarj moduna geçiliyor…')
       setPickStation('charge')
       handleParam('charge', 'pick')
       return
@@ -185,49 +198,29 @@ function Home() {
 
   // Aktif istasyon için kullanıcının yaptığı seçim (alım veya bırak)
   const handleSelection = (station, action) => {
-    if (action === 'pick') {
-      if (dropStation && station === dropStation) {
-        toast.error('Al ve bırak istasyonları aynı olamaz.')
-        return
-      }
-      setPickStation(station)
-      handleParam(station, 'pick')
-    } else if (action === 'drop') {
-      if (pickStation && station === pickStation) {
-        toast.error('Al ve bırak istasyonları aynı olamaz.')
-        return
-      }
-      setDropStation(station)
-      handleParam(station, 'drop')
+    if (action === 'pick' && dropStation === station) {
+      return toast.error('Al ve bırak aynı olamaz.')
     }
+    if (action === 'drop' && pickStation === station) {
+      return toast.error('Al ve bırak aynı olamaz.')
+    }
+    action === 'pick' ? setPickStation(station) : setDropStation(station)
+    handleParam(station, action)
     setActiveStation(null)
   }
-
-  // Seçimi sıfırlama (iptal)
   const handleCancel = () => {
-    setPickStation(null)
-    setDropStation(null)
-    setActiveStation(null)
+    setPickStation(null); setDropStation(null); setActiveStation(null)
     handleParam('None', 'None')
   }
-
-  // Seçim durumunu gösterir
   const renderStationStatus = () => {
-    if (!pickStation) {
-      return 'Alım istasyonu seçimi bekleniyor'
-    } else if (!dropStation) {
-      return `Al: ${getDisplayName(
-        pickStation
-      )} → Bırakma istasyonu seçimi bekleniyor`
-    } else {
-      return `Al: ${getDisplayName(pickStation)} → Bırak: ${getDisplayName(
-        dropStation
-      )}`
-    }
+    if (!pickStation) return 'Alım istasyonu seçimi bekleniyor'
+    if (!dropStation) return `Al: ${pickStation} → Bırakma bekleniyor`
+    return `Al: ${pickStation} → Bırak: ${dropStation}`
   }
 
   // İstasyonlar:
   // Main station değerleri WebSocket ile gönderilmek üzere "out1", "out2", ... şeklinde.
+  const handleRotate = () => setRotation(r => (r + 90) % 360)
   // Ancak kullanıcıya "İstasyon 1", "İstasyon 2", ... olarak görünecek.
   const mainStations = ['out1', 'out2', 'out3', 'out4', 'out5', 'out6']
   // Footer istasyonları, "park" ve "charge"
@@ -250,6 +243,28 @@ function Home() {
           >
             <HiRefresh size={25} />
           </Button>
+          <Button
+            variant="outlined"
+            onClick={handleRobotMenuOpen}
+            style={{ marginRight: 8, marginLeft:18 }}
+            disabled={robotsList.length===0}
+          >
+            {selectedRobot ? `${selectedRobot} (${battery}%)` : 'Robot Seç'}
+          </Button>
+          <Menu
+            anchorEl={anchorElRobot}
+            open={Boolean(anchorElRobot)}
+            onClose={handleRobotMenuClose}
+          >
+            {robotsList.map(r => (
+              <MenuItem
+                key={r.Name}
+                onClick={() => handleRobotSelect(r.Name)}
+              >
+                {r.Name} — {r.battery_percentage}%
+              </MenuItem>
+            ))}
+          </Menu>
           <Button
             style={{
               width: '150px',
@@ -485,21 +500,18 @@ function Home() {
         open={openChargeModal}
         onClose={() => setOpenChargeModal(false)}
         wsClient={wsClient}
+        robotName={selectedRobot}
         onSubmit={(param) => {
           setPickStation('charge')
         }}
       />
 
       {/* Joystick, etkinse render edilir */}
-      {joystickEnabled &&
-        (isMobile ? (
-          <MobileJoystick
-            wsClient={wsClient}
-            onExit={() => setJoystickEnabled(false)}
-          />
-        ) : (
-          <Joystick wsClient={wsClient} />
-        ))}
+      {joystickEnabled && (
+        isMobile
+          ? <MobileJoystick wsClient={wsClient} robotName={selectedRobot} onExit={()=>setJoystickEnabled(false)}/>
+          : <Joystick        wsClient={wsClient} robotName={selectedRobot}/>
+      )}
     </div>
   )
 }

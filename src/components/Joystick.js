@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { RiDragMove2Line } from 'react-icons/ri'
 
-const Joystick = ({ wsClient }) => {
+const Joystick = ({ wsClient,robotName }) => {
   // State to track the joystick handle position relative to its center.
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const joystickRef = useRef(null)
@@ -20,7 +20,7 @@ const Joystick = ({ wsClient }) => {
   // Function to send control commands to the WebSocket server.
   const sendCommand = (linear, angular) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      const message = { type: 'joystick', linear, angular }
+      const message = { type: 'joystick', linear, angular,robotName }
       wsClient.send(JSON.stringify(message))
     }
   }

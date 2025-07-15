@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { RiCloseLine } from 'react-icons/ri'
 
-const MobileJoystick = ({ wsClient, onExit }) => {
+const MobileJoystick = ({ wsClient, onExit, robotName }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const joystickRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -10,7 +10,9 @@ const MobileJoystick = ({ wsClient, onExit }) => {
   // Function to send joystick commands.
   const sendCommand = (linear, angular) => {
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-      const message = { type: 'joystick', linear, angular }
+      const message = { type: 'joystick', linear, angular, robotName }
+      console.log(message);
+      
       wsClient.send(JSON.stringify(message))
     }
   }

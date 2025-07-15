@@ -24,7 +24,7 @@ const modalStyle = {
   padding: '16px',
 }
 
-const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
+const ChargingModal = ({ open, onClose, wsClient, onSubmit, robotName }) => {
   const [chargeMode, setChargeMode] = useState('percentage')
   const [chargeValue, setChargeValue] = useState('')
 
@@ -35,17 +35,17 @@ const ChargingModal = ({ open, onClose, wsClient, onSubmit }) => {
     }
     if (wsClient && wsClient.readyState === WebSocket.OPEN) {
       if (chargeMode === 'percentage') {
-        const message1 = { type: 'param', '/ChargePercentageSelection': chargeValue }
-        const message2 = { type: 'param', '/ChargeMinuteSelection': 'None' }
+        const message1 = { type: 'param', '/ChargePercentageSelection': chargeValue, robotName }
+        const message2 = { type: 'param', '/ChargeMinuteSelection': 'None', robotName }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
       } else if (chargeMode === 'time') {
-        const message1 = { type: 'param', '/ChargeMinuteSelection': chargeValue }
-        const message2 = { type: 'param', '/ChargePercentageSelection': 'None' }
+        const message1 = { type: 'param', '/ChargeMinuteSelection': chargeValue, robotName }
+        const message2 = { type: 'param', '/ChargePercentageSelection': 'None', robotName }
         wsClient.send(JSON.stringify(message1))
         wsClient.send(JSON.stringify(message2))
       }
-      const message = { type: 'param', '/pick_selection': 'charge' }
+      const message = { type: 'param', '/pick_selection': 'charge', robotName }
       wsClient.send(JSON.stringify(message))
       if (onSubmit) {
         onSubmit(`Charge (${chargeMode}: ${chargeValue})`)
