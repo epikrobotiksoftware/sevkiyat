@@ -88,6 +88,14 @@ function Home() {
   }, [robotsList, selectedRobot])
 
   useEffect(() => {
+    if (robotsList.length === 0) {
+      setSelectedRobot(null)
+      setBattery(0)
+      setChargingStatus(0)
+    }
+  }, [robotsList])
+
+  useEffect(() => {
     connect()
     return () => {
       wsClient?.close()
@@ -247,9 +255,14 @@ function Home() {
             variant="outlined"
             onClick={handleRobotMenuOpen}
             style={{ marginRight: 8, marginLeft:18 }}
-            disabled={robotsList.length===0}
+            disabled={robotsList.length === 0}
           >
-            {selectedRobot ? `${selectedRobot} (${battery}%)` : 'Robot Seç'}
+            {robotsList.length === 0
+              ? 'Robot Seç'                            // no robots → always default
+              : selectedRobot                          // otherwise, show selection
+                ? `${selectedRobot} (${battery}%)`
+                : 'Robot Seç'
+            }
           </Button>
           <Menu
             anchorEl={anchorElRobot}
