@@ -43,6 +43,7 @@ function Home() {
   const [dropStation, setDropStation] = useState(null)
   const [activeStation, setActiveStation] = useState(null)
   const [mapSrc, setMapSrc] = useState(`${SERVER}/map.png`)
+  // const [mapSrc, setMapSrc] = useState('')
 
   // Charging modal state
   const [openChargeModal, setOpenChargeModal] = useState(false)
@@ -77,9 +78,9 @@ function Home() {
   }
 
   useEffect(() => {
-    if (!selectedRobot && robotsList.length > 0) {
-      setSelectedRobot(null)
-    }
+    // if (!selectedRobot && robotsList.length > 0) {
+    //   setSelectedRobot(null)
+    // }
     const sel = robotsList.find(r => r.Name === selectedRobot)
     if (sel) {
       setBattery(sel.battery_percentage || 0)
@@ -87,13 +88,13 @@ function Home() {
     }
   }, [robotsList, selectedRobot])
 
-  useEffect(() => {
-    if (robotsList.length === 0) {
-      setSelectedRobot(null)
-      setBattery(0)
-      setChargingStatus(0)
-    }
-  }, [robotsList])
+  // useEffect(() => {
+  //   if (robotsList.length === 0) {
+  //     setSelectedRobot(null)
+  //     setBattery(0)
+  //     setChargingStatus(0)
+  //   }
+  // }, [robotsList])
 
   useEffect(() => {
     connect()
@@ -255,14 +256,18 @@ function Home() {
             variant="outlined"
             onClick={handleRobotMenuOpen}
             style={{ marginRight: 8, marginLeft:18 }}
-            disabled={robotsList.length === 0}
+            // disabled={robotsList.length === 0}
           >
-            {robotsList.length === 0
+            {
+              selectedRobot === null ? 'Robot Seç' : `${selectedRobot} (${battery}%)`
+            }
+
+{     /*       {robotsList.length === 0
               ? 'Robot Seç'                            // no robots → always default
               : selectedRobot                          // otherwise, show selection
                 ? `${selectedRobot} (${battery}%)`
                 : 'Robot Seç'
-            }
+            }*/}
           </Button>
           <Menu
             anchorEl={anchorElRobot}
